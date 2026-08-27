@@ -456,11 +456,16 @@ tfoot td{border-top:1px solid var(--line);font-weight:600;background:var(--surfa
   box-shadow:0 0 0 2px var(--accent), var(--shadow);
   background:color-mix(in srgb, var(--accent) 8%, var(--surface))}
 .cell.today .dn{color:var(--accent)}
-.wgrid .cell.today .wcolhead .dn::after,
-.mmonth .cell.today .wcolhead .dn::after{
-  content:'오늘';margin-left:6px;font-size:.78em;font-weight:700;letter-spacing:.02em;
-  color:var(--accent-ink);background:var(--accent);border-radius:5px;padding:1px 6px;
-  vertical-align:middle}
+/* 「오늘」은 머리줄에 끼워 넣지 않는다 — 날짜와 [수정] 버튼의 자리를 뺏어
+   버튼이 잘리고 툴팁과 겹쳤다. 카드 맨 위 띠로 빼서 폭을 건드리지 않게 한다. */
+.wgrid .cell.today::before,
+.mmonth .cell.today::before{
+  content:'오늘';display:block;order:-1;
+  background:var(--accent);color:var(--accent-ink);
+  font-size:.76em;font-weight:700;letter-spacing:.06em;line-height:1;
+  padding:4px 10px 5px;border-radius:9px 9px 0 0}
+.wgrid .cell.today::before{margin:-11px -11px 9px}
+.mmonth .cell.today::before{margin:-6px -6px 7px}
 .cell .icons{display:flex;flex-wrap:wrap;gap:1px;justify-content:center;font-size:11px;line-height:1.15}
 .cell .ev{position:static;z-index:auto;border:0;font-size:.84em;line-height:1.3;color:var(--c);font-weight:600;text-align:center;
   letter-spacing:-.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -532,6 +537,22 @@ button.wa-n:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 span.wa-day{cursor:default;display:inline-flex;align-items:center;justify-content:center}
 .wa-prog{margin-left:auto;color:var(--ink-3);font-variant-numeric:tabular-nums;
   font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+/* 저장 전 상태 — 바뀐 요일과 항목을 눈에 띄게 표시한다 */
+.wa-day.dirty{border-color:var(--warn);box-shadow:inset 0 0 0 1px var(--warn)}
+.wa-day.dirty:not(.on){color:var(--warn);text-decoration:line-through;opacity:.75}
+.wa-row.changed{background:color-mix(in srgb, var(--warn) 7%, transparent);
+  border-radius:9px;margin:0 -8px;padding:2px 8px}
+.wa-chg{color:var(--warn);font-weight:700}
+
+.wa-savebar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin-top:4px;padding-top:10px;border-top:1px dashed var(--line)}
+.wa-savemsg{font-size:12px;color:var(--ink-3);margin-right:auto}
+.wa-savebar.on .wa-savemsg{color:var(--warn)}
+.wa-savemsg b{color:var(--warn);font-weight:700}
+.wa-savebar .wa-mini[disabled]{opacity:.4;cursor:default}
+.wa-savebar .wa-mini[disabled]:hover{border-color:var(--line);color:var(--ink-2)}
+.wa-savebar.on .wa-mini.on{box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent)}
+
 .wa-addrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;padding-top:9px;border-top:1px dashed var(--line)}
 .wa-newitem-input{font:inherit;font-size:12.5px;color:var(--ink);background:var(--surface);
   border:1px solid var(--line);border-radius:7px;padding:7px 10px;flex:1 1 160px;min-width:0}
@@ -622,8 +643,19 @@ span.wa-day{cursor:default;display:inline-flex;align-items:center;justify-conten
 .mmonth.brief .cell .wchk .wc-n{display:none}
 .mmonth.brief .cell .wchk .wc-ic{font-size:13px}
 
-/* PC — 7장이 들어가면 한 줄, 좁아지면 줄바꿈. 카드 크기는 그대로 둔다. */
+/* PC — 7장이 들어가면 한 줄, 좁아지면 줄바꿈. 카드 크기는 그대로 둔다.
+   auto-fit 이라 남는 트랙은 접히므로 7장이 늘 폭을 가득 채운다. */
 .wgrid{grid-template-columns:repeat(auto-fit,minmax(146px,1fr))}
+
+/* 본문 폭(1060px)만으로는 7장이 한 줄에 못 들어간다. 화면이 넓을 때만
+   달력 영역을 양옆으로 최대 250px 씩 넓혀 준다 — 본문 글줄 길이는 그대로 두고
+   달력만 넓히는 것이라 읽는 폭이 망가지지 않는다.
+   창을 줄이면 넓힘이 0 으로 줄고 기존 줄바꿈 동작이 그대로 살아난다. */
+@media (min-width:1240px){
+  #weekview, #monthview{
+    --bleed:min(250px, max(0px, calc((100vw - 1096px) / 2)));
+    margin-inline:calc(-1 * var(--bleed))}
+}
 
 /* 요일 선택 띠 — 폰에서 카드 한 장만 보일 때 요일을 고르는 자리 */
 .daystrip{display:none;gap:6px;margin:0 0 12px;overflow-x:auto;padding-bottom:2px;
@@ -1654,18 +1686,101 @@ function assignedDaysForWeek(weekKey, item){
   }
   return _weekPlanCache.plan[item.id] || new Set();
 }
-/* 상단 '이번 주 학습 배정' 카드에서 요일을 눌러 배정을 직접 추가/취소 — 저장되면 그 주는 자동 무작위 대신 이 값을 사용 */
+/* ── 학습 배정 편집 ──
+   요일을 누르면 바로 반영하지 않고 여기에 쌓아 둔다. [저장]을 눌러야 assigns 로
+   옮겨지고 달력이 다시 그려지며 서버로 올라간다. 누를 때마다 달력이 튀지 않고,
+   여러 개를 고친 뒤 한 번에 반영할 수 있다. */
+let pendingAssigns = null;
+
+const hasPendingAssigns = () => !!pendingAssigns && Object.keys(pendingAssigns).length > 0;
+
+/* 화면에 그릴 배정 — 저장 전 값이 있으면 그걸 먼저 쓴다 */
+function shownAssignDays(weekKey, item){
+  const akey = weekKey + '::' + item.id;
+  if (pendingAssigns && akey in pendingAssigns) return new Set(pendingAssigns[akey]);
+  return assignedDaysForWeek(weekKey, item);
+}
+
 function toggleAssignDay(weekKey, itemId, dayIdx){
   const item = STUDY.find(it => it.id === itemId);
   if (!item || item.target >= 7) return;
   const akey = weekKey + '::' + itemId;
-  const cur = new Set(assigns[akey] || assignedDaysForWeek(weekKey, item));
+  if (!pendingAssigns) pendingAssigns = {};
+  const cur = new Set(shownAssignDays(weekKey, item));
   if (cur.has(dayIdx)) cur.delete(dayIdx); else cur.add(dayIdx);
-  assigns[akey] = [...cur].sort((a,b) => a - b);
+  pendingAssigns[akey] = [...cur].sort((a, b) => a - b);
+  renderAssignCard(weekKey);
+}
+
+/* [저장] — 쌓아 둔 배정을 확정한다.
+   buildCalendar() 가 주간과 (월간을 보고 있다면) 월간을 함께 다시 그리고,
+   queueSave() 가 서버로 올린다. 다른 기기는 구독으로 곧바로 따라온다. */
+function saveAssigns(){
+  if (!hasPendingAssigns()) return;
+  Object.assign(assigns, pendingAssigns);
+  pendingAssigns = null;
   _weekPlanCache = { key: null, plan: null };
-  renderWeek(weekKey);
+  buildCalendar();
   if (selectedDate) renderDayPanel(selectedDate);
   queueSave();
+}
+
+function cancelAssigns(){
+  pendingAssigns = null;
+  renderAssignCard(currentWeekKey);
+}
+
+function renderAssignCard(weekKey){
+  const quotaItems = STUDY.filter(it => it.target < 7);
+  const dirty = hasPendingAssigns();
+
+  $('wkassign').innerHTML = '<h4>이번 주 학습 배정' +
+    (writable
+      ? '<span class="wa-hint">요일을 눌러 배정 추가 · 취소 · 이름 옆 ✏️로 수정</span>'
+      : '<span class="wa-hint">자동 무작위 배정</span>') + '</h4>' +
+    quotaItems.map(it => {
+      const shown = shownAssignDays(weekKey, it);
+      const saved = assignedDaysForWeek(weekKey, it);
+      const changed = shown.size !== saved.size || [...shown].some(d => !saved.has(d));
+      const done = weekCount(weekKey, it.id);
+      const dayBtns = WNAMES.map((wn, i) => {
+        const on = shown.has(i);
+        const moved = on !== saved.has(i);
+        return writable
+          ? '<button type="button" class="wa-day' + (on ? ' on' : '') + (moved ? ' dirty' : '') +
+            '" data-assign="' + weekKey + '::' + it.id + '::' + i + '" aria-pressed="' + on + '">' + wn + '</button>'
+          : '<span class="wa-day' + (on ? ' on' : '') + '">' + wn + '</span>';
+      }).join('');
+      const nameBlock = !writable
+        ? '<span class="wa-n">' + esc(it.n) + '</span>'
+        : editingStudyId === it.id
+          ? '<span class="wa-rename">' +
+            '<input type="text" class="wa-rename-input" id="wa-rename-input" value="' + esc(it.n) + '" data-rename-id="' + it.id + '" maxlength="20">' +
+            '<button type="button" class="wa-mini on" data-rename-save="' + it.id + '">저장</button>' +
+            '<button type="button" class="wa-mini" data-rename-cancel="1">취소</button></span>'
+          : '<button type="button" class="wa-n wa-nbtn" data-rename-open="' + it.id + '" title="이름 수정">' +
+            esc(it.n) + '<span class="wa-editicon" aria-hidden="true">✏️</span></button>';
+      return '<div class="wa-row' + (changed ? ' changed' : '') + '"><span class="wa-ic">' + it.icon + '</span>' +
+        nameBlock + '<span class="wa-daybtns">' + dayBtns + '</span>' +
+        '<span class="wa-prog">' + (changed ? '<b class="wa-chg">변경됨</b> · ' : '') +
+        done + '/' + it.target + '일 완료</span></div>';
+    }).join('') +
+    (writable
+      ? '<div class="wa-savebar' + (dirty ? ' on' : '') + '">' +
+          '<span class="wa-savemsg">' + (dirty
+            ? '바뀐 배정은 <b>저장</b>을 눌러야 달력에 반영됩니다.'
+            : '요일을 눌러 이번 주 배정을 바꿀 수 있습니다.') + '</span>' +
+          '<button type="button" class="wa-mini" id="wa-cancel"' + (dirty ? '' : ' disabled') + '>되돌리기</button>' +
+          '<button type="button" class="wa-mini on" id="wa-save"' + (dirty ? '' : ' disabled') + '>저장</button>' +
+        '</div>' +
+        '<div class="wa-addrow"><input type="text" class="wa-newitem-input" id="wa-newitem-input" placeholder="새 학습 항목 이름" maxlength="20">' +
+        '<button type="button" class="wa-mini on" id="wa-additem-btn">+ 항목 추가</button></div>'
+      : '');
+
+  if (editingStudyId){
+    const inp = $('wa-rename-input');
+    if (inp){ inp.focus(); inp.select(); }
+  }
 }
 
 /* 하루치 등교/학원/휴업 정보 계산 — 월별 정적 달력(내보내기용)과 주간 달력(화면용)이 함께 사용 */
@@ -1865,35 +1980,7 @@ function renderWeek(weekKey){
   }).join('');
   markActiveDay();
 
-  const quotaItems = STUDY.filter(it => it.target < 7);
-  $('wkassign').innerHTML = '<h4>이번 주 학습 배정' +
-    (writable ? '<span class="wa-hint">요일을 눌러 배정 추가 · 취소 · 이름 옆 ✏️로 수정</span>' : '<span class="wa-hint">자동 무작위 배정</span>') + '</h4>' +
-    quotaItems.map(it => {
-      const assignedSet = assignedDaysForWeek(weekKey, it);
-      const done = weekCount(weekKey, it.id);
-      const dayBtns = WNAMES.map((wn, i) => {
-        const on = assignedSet.has(i);
-        return writable
-          ? '<button type="button" class="wa-day' + (on ? ' on' : '') + '" data-assign="' + weekKey + '::' + it.id + '::' + i +
-            '" aria-pressed="' + on + '">' + wn + '</button>'
-          : '<span class="wa-day' + (on ? ' on' : '') + '">' + wn + '</span>';
-      }).join('');
-      const nameBlock = !writable
-        ? '<span class="wa-n">' + esc(it.n) + '</span>'
-        : editingStudyId === it.id
-          ? '<span class="wa-rename">' +
-            '<input type="text" class="wa-rename-input" id="wa-rename-input" value="' + esc(it.n) + '" data-rename-id="' + it.id + '" maxlength="20">' +
-            '<button type="button" class="wa-mini on" data-rename-save="' + it.id + '">저장</button>' +
-            '<button type="button" class="wa-mini" data-rename-cancel="1">취소</button></span>'
-          : '<button type="button" class="wa-n wa-nbtn" data-rename-open="' + it.id + '" title="이름 수정">' +
-            esc(it.n) + '<span class="wa-editicon" aria-hidden="true">✏️</span></button>';
-      return '<div class="wa-row"><span class="wa-ic">' + it.icon + '</span>' + nameBlock +
-        '<span class="wa-daybtns">' + dayBtns + '</span><span class="wa-prog">' + done + '/' + it.target + '일 완료</span></div>';
-    }).join('') +
-    (writable
-      ? '<div class="wa-addrow"><input type="text" class="wa-newitem-input" id="wa-newitem-input" placeholder="새 학습 항목 이름" maxlength="20">' +
-        '<button type="button" class="wa-mini on" id="wa-additem-btn">+ 항목 추가</button></div>'
-      : '');
+  renderAssignCard(weekKey);
 
   if (editingStudyId){
     const inp = $('wa-rename-input');
@@ -2265,6 +2352,9 @@ document.addEventListener('click', ev => {
     return;
   }
 
+  if (ev.target.closest('#wa-save')){ saveAssigns(); return; }
+  if (ev.target.closest('#wa-cancel')){ cancelAssigns(); return; }
+
   const assignBtn = ev.target.closest('[data-assign]');
   if (assignBtn){
     const [wk, itemId, dayIdx] = assignBtn.dataset.assign.split('::');
@@ -2393,8 +2483,14 @@ async function boot(){
 }
 
 /* 불러온 묶음을 화면 상태에 반영. keepEmpty=false 면 빈 값은 무시해
-   기존 기기 사본을 지우지 않습니다. */
+   기존 기기 사본을 지우지 않습니다.
+
+   자동 배정 계획은 assigns 를 입력으로 삼기 때문에, 데이터를 갈아끼우면
+   반드시 캐시를 버려야 합니다. 앱은 데이터를 불러오기 전에 한 번 그려 두므로
+   (빈 assigns 기준으로 계획이 캐시된다) 이걸 빠뜨리면 불러온 뒤에도 옛 계획이
+   그대로 쓰여 저장한 배정이 화면에 반영되지 않습니다. */
 function apply(d, allowEmpty){
+  _weekPlanCache = { key: null, plan: null };
   const obj = v => (v && typeof v === 'object') ? v : null;
   const o = obj(d.overrides), c = obj(d.checks), a = obj(d.assigns), s = obj(d.studyMeta);
   if (o || allowEmpty) overrides = o || {};
