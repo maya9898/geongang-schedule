@@ -33,7 +33,8 @@
     <button type="button" class="syncbtn" id="syncbtn-email" hidden>이메일로 로그인</button>
   </div>
   <nav class="tabs" role="tablist" aria-label="보기 전환">
-    <button class="tab" id="tab-cal" role="tab" aria-selected="true" aria-controls="p-cal">주간캘린더</button>
+    <button class="tab" id="tab-cal" role="tab" aria-selected="true" aria-controls="p-cal">캘린더</button>
+    <button class="tab" id="tab-acad" role="tab" aria-selected="false" aria-controls="p-acad">학사일정</button>
     <button class="tab" id="tab-sched" role="tab" aria-selected="false" aria-controls="p-sched">시간표</button>
   </nav>
 </header>
@@ -41,14 +42,16 @@
 <main class="wrap">
 
 <section class="panel on" id="p-cal" role="tabpanel" aria-labelledby="tab-cal">
-  <h2 id="wkh2">주간 달력 <span style="font-size:12px;font-weight:400;color:var(--ink-3)" id="wklabel"></span></h2>
+  <h2 id="wkh2">캘린더 <span style="font-size:12px;font-weight:400;color:var(--ink-3)" id="wklabel"></span></h2>
 
   <div class="calswitch">
     <div class="calseg" role="tablist" aria-label="달력 보기 전환">
       <button type="button" id="cv-week"  role="tab" aria-selected="true"  aria-controls="weekview">주간</button>
       <button type="button" id="cv-month" role="tab" aria-selected="false" aria-controls="monthview">월간</button>
     </div>
-    <button type="button" class="wa-mini calspacer" id="m-brief" aria-pressed="false" hidden>간략히 보기</button>
+    <button type="button" class="wa-mini calspacer" id="assign-btn">이번 주 학습 배정</button>
+    <button type="button" class="wa-mini" id="help-btn">사용 방법 안내</button>
+    <button type="button" class="wa-mini" id="m-brief" aria-pressed="false" hidden>간략히 보기</button>
   </div>
 
   <div class="card daypanel" id="daypanel" hidden></div>
@@ -59,7 +62,6 @@
       <button type="button" class="wknavbtn" id="wk-today">이번 주</button>
       <button type="button" class="wknavbtn" id="wk-next" aria-label="다음 주">다음 주 ›</button>
     </div>
-    <div class="card wkassign" id="wkassign"></div>
     <div class="daystrip" id="daystrip" role="tablist" aria-label="요일 선택"></div>
     <div class="wgrid" id="wgrid"></div>
   </div>
@@ -78,25 +80,43 @@
   </div>
 
   <div class="months" id="allweeks" hidden></div>
+</section>
 
+<section class="panel" id="p-acad" role="tabpanel" aria-labelledby="tab-acad">
   <h2>2학년 학사 일정</h2>
-  <details class="card evlist-details" id="evlist-details">
+  <details class="card evlist-details" id="evlist-details" open>
     <summary>전체 학사 일정 보기<span class="evlist-count" id="evlist-count"></span></summary>
     <div class="evlist" id="evlist"></div>
   </details>
-  <p class="note" style="border-left-color:var(--ink-3)">주간 달력의 각 날짜 칸에는 그날 해당하는 학사 일정이 이미 표시됩니다. 위 목록은 학기 전체 일정을 한눈에 보고 싶을 때만 펼쳐서 확인하세요 — 학교 2026학년도 학사일정 중 <strong style="color:var(--ink-2)">2학년에 해당하는 항목</strong>만 담았고, 다른 학년 행사는 목록 아래에 흐리게 참고로 두었습니다. 학사일정은 학교 사정에 따라 변경될 수 있습니다.</p>
-
-  <div class="calhead">
-    <h1>2026학년도 2학기 · 2학년</h1>
-    <p class="sum" id="calsum"></p>
-  </div>
-  <div class="callegend" id="callegend"></div>
-  <p class="note" style="border-left-color:var(--ink-3)">「시간표」 탭의 「시간대 정리」 표가 매주 반복되는 기본 시간표입니다. 여행이나 그날의 사정으로 못 가는 경우, 아래 주간 달력에서 <strong style="color:var(--ink-2)">수정</strong> 버튼을 눌러 <strong style="color:var(--ink-2)">휴원</strong>으로 표시하거나 <strong style="color:var(--ink-2)">다른 날짜로 보강</strong>을 지정할 수 있습니다.</p>
-
-  <h2>저녁 학습 체크리스트 안내</h2>
-  <div class="callegend" id="studylegend"></div>
-  <p class="note" style="border-left-color:var(--accent)">2학기 겨울방학 전까지 표시됩니다. 토도영어는 매일, 듀오링고·수학 학습지는 주 5일, 독서·그림일기는 주 3일이 목표이며 요일은 매주 자동으로 무작위 배정됩니다(주말은 하루 3건까지, 그림일기·독서기록지는 같은 날에 겹치지 않도록 배정) — 아래 주간 달력에서 그날 학교·학원 일정이 끝난 자리에서 바로 체크하세요.</p>
+  <p class="note" style="border-left-color:var(--ink-3)">달력의 각 날짜 칸에는 그날 해당하는 학사 일정이 이미 표시됩니다. 이 목록은 학기 전체 일정을 한눈에 보고 싶을 때 확인하세요 — 학교 2026학년도 학사일정 중 <strong style="color:var(--ink-2)">2학년에 해당하는 항목</strong>만 담았고, 다른 학년 행사는 목록 아래에 흐리게 참고로 두었습니다. 학사일정은 학교 사정에 따라 변경될 수 있습니다.</p>
 </section>
+
+<div class="modal-overlay" id="help-modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head"><b>사용 방법 안내</b><button type="button" class="modal-close" id="help-close" aria-label="닫기">×</button></div>
+    <div class="modal-body">
+      <div class="calhead">
+        <h1>2026학년도 2학기 · 2학년</h1>
+        <p class="sum" id="calsum"></p>
+      </div>
+      <div class="callegend" id="callegend"></div>
+      <p class="note" style="border-left-color:var(--ink-3)">「시간표」 탭의 「시간대 정리」 표가 매주 반복되는 기본 시간표입니다. 여행이나 그날의 사정으로 못 가는 경우, 요일 카드의 <strong style="color:var(--ink-2)">수정</strong> 버튼을 눌러 <strong style="color:var(--ink-2)">휴원</strong>으로 표시하거나 <strong style="color:var(--ink-2)">다른 날짜로 보강</strong>을 지정할 수 있습니다.</p>
+
+      <h4>저녁 학습 체크리스트</h4>
+      <div class="callegend" id="studylegend"></div>
+      <p class="note" style="border-left-color:var(--accent)">2학기 겨울방학 전까지 표시됩니다. 토도영어는 매일, 듀오링고·수학 학습지는 주 5일, 독서·그림일기는 주 3일이 목표이며 요일은 매주 자동으로 무작위 배정됩니다(주말은 하루 3건까지, 그림일기·독서기록지는 같은 날에 겹치지 않도록 배정) — 요일 카드에서 그날 학교·학원 일정이 끝난 자리에서 바로 체크하세요.</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="assign-modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head"><b>이번 주 학습 배정</b><button type="button" class="modal-close" id="assign-close" aria-label="닫기">×</button></div>
+    <div class="modal-body">
+      <div class="card wkassign" id="wkassign"></div>
+    </div>
+  </div>
+</div>
 
 
 <section class="panel" id="p-sched" role="tabpanel" aria-labelledby="tab-sched">

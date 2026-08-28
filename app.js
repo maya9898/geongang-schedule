@@ -389,15 +389,22 @@ async function schedDoc(){
   if (dp) dp.remove();
   // 라이브 주간 달력(네비게이션·배정 요약·주간 그리드)은 내보내기에서 제외하고,
   // 학기 전체를 훑는 정적 월별 달력을 그 자리에 채워 넣는다
-  ['.wknav', '#wkassign', '#wgrid', '#daystrip', '.calswitch', '#monthview']
+  ['.wknav', '#wgrid', '#daystrip', '.calswitch', '#monthview']
     .forEach(sel => { const el = cal.querySelector(sel); if (el) el.remove(); });
   const wkH2 = cal.querySelector('#wkh2');
   if (wkH2) wkH2.textContent = '날짜별 달력';
   const allweeks = cal.querySelector('#allweeks');
   if (allweeks){ allweeks.hidden = false; allweeks.innerHTML = buildAllWeeksHtml(); }
-  // 접힌 학사 일정 목록도 내보내기 문서에서는 펼친 채로 담는다
-  const evd = cal.querySelector('#evlist-details');
+
+  // 학사 일정 목록(「학사일정」 탭)과 범례·안내(「사용 방법 안내」 팝업)는 이제
+  // p-cal 밖에 있으므로 따로 담아 온다. 접힌 목록은 펼친 채로 담는다.
+  const acad = $('p-acad').cloneNode(true);
+  acad.classList.add('on');
+  acad.removeAttribute('role');
+  acad.removeAttribute('aria-labelledby');
+  const evd = acad.querySelector('#evlist-details');
   if (evd) evd.setAttribute('open', '');
+  const helpBody = $('help-modal').querySelector('.modal-body').cloneNode(true);
 
   const total = fmtDur(EV.reduce((a,e) => a + dur(e), 0));
   return '<!doctype html><html lang="ko"><head><meta charset="utf-8">' +
@@ -407,6 +414,7 @@ async function schedDoc(){
     sched.outerHTML.replace('<p id="printsub"></p>',
       '<p>월–금 ' + EV.length + '개 일정 · 주 ' + total + ' · ' + stamp() + ' 기준</p>') +
     '<h2 style="margin-top:38px">2026학년도 2학기 학사 캘린더 · 주간 달력</h2>' + cal.outerHTML +
+    acad.outerHTML + helpBody.outerHTML +
     '</main></body></html>';
 }
 
@@ -882,7 +890,7 @@ function dayCellParts(k, d, wd, offDays, byDay){
   if (evs.length){
     const c = kindColor(evs[0].k);
     banner = '<div class="dots" style="--c:' + c + '">' + evs.map(() => '<i></i>').join('') + '</div>' +
-      evs.map(e => '<div class="ev" style="--c:' + kindColor(e.k) + '">' + (e.s || e.t) + '</div>').join('');
+      evs.map(e => '<div class="ev' + (CUSTOM_KIND[e.k] ? ' family' : '') + '" style="--c:' + kindColor(e.k) + '">' + (e.s || e.t) + '</div>').join('');
     title += (title ? ' · ' : '') + evs.map(e => e.t).join(' · ');
   } else if (isOff){
     banner = '<div class="ev" style="--c:var(--crit)">' + offDays[k] + '</div>';
@@ -1027,8 +1035,8 @@ function weekDayColHtml(k, wd, offDays, byDay, weekKey, todayKey){
   const editBtn = p.inSem ? '<button type="button" class="wedit" data-editday="' + k + '">수정</button>' : '';
   return '<div class="' + cls.join(' ') + '" data-date="' + k + '"' +
     (p.title ? ' title="' + p.title.replace(/"/g,'&quot;') + '"' : '') + '>' +
-    '<div class="wcolhead"><span class="dn">' + (d.getMonth()+1) + '/' + d.getDate() + ' (' + WNAMES[mon0(wd)] + ')</span>' + editBtn + '</div>' +
-    body + '</div>';
+    '<div class="wcolhead"><span class="dn">' + (d.getMonth()+1) + '/' + d.getDate() + ' (' + WNAMES[mon0(wd)] + ')</span></div>' +
+    body + editBtn + '</div>';
 }
 
 /* 주간 달력을 화면에 그린다 — 상단 라벨, 학습 배정 요약, 7일 컬럼 */
@@ -1491,8 +1499,8 @@ document.addEventListener('click', ev => {
     return;
   }
 
-  if (ev.target.closest('#wa-save')){ saveAssigns(); return; }
-  if (ev.target.closest('#wa-cancel')){ cancelAssigns(); return; }
+  if (ev.target.closest('#wa-save')){ saveAssigns(); closeModal('assign-modal'); return; }
+  if (ev.target.closest('#wa-cancel')){ cancelAssigns(); closeModal('assign-modal'); return; }
 
   const assignBtn = ev.target.closest('[data-assign]');
   if (assignBtn){
@@ -1734,7 +1742,7 @@ function apply(d, allowEmpty){
 }
 
 /* ═══════════ 탭 ═══════════ */
-const TABS = [['tab-cal','p-cal'], ['tab-sched','p-sched']];
+const TABS = [['tab-cal','p-cal'], ['tab-acad','p-acad'], ['tab-sched','p-sched']];
 TABS.forEach(([tid, pid]) => {
   $(tid).addEventListener('click', () => {
     TABS.forEach(([t, p]) => {
@@ -1745,6 +1753,30 @@ TABS.forEach(([tid, pid]) => {
     try { sessionStorage.setItem('kg-tab', tid); } catch(e){}
   });
 });
+/* ── 팝업(사용 방법 안내 · 이번 주 학습 배정) ──
+   같은 열기·닫기 동작을 공유한다. 열려 있는 동안은 뒤 페이지 스크롤을 막아
+   방금 고친 월간 달력처럼 스크롤이 두 겹으로 겹치지 않게 한다. */
+function openModal(id){
+  $(id).hidden = false;
+  document.body.classList.add('modal-open');
+}
+function closeModal(id){
+  $(id).hidden = true;
+  if (!document.querySelector('.modal-overlay:not([hidden])')) document.body.classList.remove('modal-open');
+}
+$('help-btn').addEventListener('click', () => openModal('help-modal'));
+$('help-close').addEventListener('click', () => closeModal('help-modal'));
+$('help-modal').addEventListener('click', ev => { if (ev.target.id === 'help-modal') closeModal('help-modal'); });
+
+$('assign-btn').addEventListener('click', () => openModal('assign-modal'));
+$('assign-close').addEventListener('click', () => closeModal('assign-modal'));
+$('assign-modal').addEventListener('click', ev => { if (ev.target.id === 'assign-modal') closeModal('assign-modal'); });
+
+document.addEventListener('keydown', ev => {
+  if (ev.key !== 'Escape') return;
+  document.querySelectorAll('.modal-overlay:not([hidden])').forEach(m => closeModal(m.id));
+});
+
 try {
   const saved = sessionStorage.getItem('kg-tab');
   if (saved && saved !== 'tab-cal' && $(saved)) $(saved).click();

@@ -468,6 +468,9 @@ tfoot td{border-top:1px solid var(--line);font-weight:600;background:var(--surfa
 .cell .ev{position:static;z-index:auto;border:0;font-size:.84em;line-height:1.3;color:var(--c);font-weight:600;text-align:center;
   letter-spacing:-.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   background:color-mix(in srgb, var(--c) 13%, transparent);border-radius:4px;padding:1px 3px}
+/* 여행·체험 등 사용자가 직접 추가한 일정 — 옅은 tint로는 눈에 잘 안 띄어서
+   진한 배경 + 밝은 글자로 확실히 구분되게 한다 */
+.cell .ev.family{background:var(--c);color:var(--accent-ink)}
 .cell .dots{display:flex;gap:2px;justify-content:center}
 .cell .dots i{width:5px;height:5px;border-radius:50%;background:var(--c);display:block}
 /* ── 상세 일과표(데스크톱 전용) ── */
@@ -565,17 +568,21 @@ span.wa-day{cursor:default;display:inline-flex;align-items:center;justify-conten
 .wgrid .cell .dots{display:flex}
 .wgrid .cell .ev{display:block}
 .wgrid .cell .agenda{display:flex}
-.wcolhead{display:flex;align-items:baseline;justify-content:space-between;gap:6px;margin-bottom:2px}
+.wcolhead{display:flex;align-items:baseline;gap:6px;margin-bottom:2px}
 .wcolhead .dn{font-size:1.06em;font-weight:700;color:var(--ink);text-align:left;white-space:nowrap}
-.wedit{appearance:none;border:1px solid var(--line);background:var(--surface-2);color:var(--ink-2);
-  font:inherit;font-size:.82em;font-weight:600;cursor:pointer;border-radius:6px;padding:5px 9px;
-  white-space:nowrap;flex:0 0 auto}
+/* 카드 맨 아래 — 카드 내용과 분리되도록 위에 구분선을 둔다 */
+.wedit{appearance:none;display:block;width:100%;margin-top:10px;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink-2);
+  font:inherit;font-size:.82em;font-weight:600;cursor:pointer;padding:7px 9px;text-align:center}
 .wedit:hover{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
 .wedit:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
 .wstudy{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+/* 학습 항목 이름도 나머지 리스트(.cev)와 같은 .9em으로 맞춘다 — 카드 안에서 글자 크기가
+   들쭉날쭉하지 않도록. 기준(--fs-0) 자체를 바꾸면 카드 밖 다른 곳까지 흔들리므로
+   여기서만 낮춘다. */
 .wchk{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
-  font:inherit;font-size:1em;line-height:1.35;cursor:pointer;border-radius:8px;padding:8px 10px;
+  font:inherit;font-size:.9em;line-height:1.35;cursor:pointer;border-radius:8px;padding:8px 10px;
   display:flex;align-items:flex-start;gap:7px;text-align:left;min-height:38px;width:100%;min-width:0}
 .wchk .wc-ic{flex:0 0 auto;filter:grayscale(1);opacity:.5;line-height:1.35}
 /* 칸이 좁아도 글자를 줄이지 않는다 — 대신 두 줄까지 접는다 */
@@ -606,9 +613,8 @@ span.wa-day{cursor:default;display:inline-flex;align-items:center;justify-conten
 .mnav{display:flex;align-items:center;gap:8px;margin:0 0 12px;flex-wrap:wrap}
 .mtitle{font-size:14px;font-weight:700;min-width:118px;
   font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
-.mscroll{max-height:76vh;overflow-y:auto;overscroll-behavior:contain;
-  border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow)}
-.mscroll .mwdays{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
+.mscroll{border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow)}
+.mscroll .mwdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
   background:var(--surface-2);border-bottom:1px solid var(--line)}
 .mscroll .mwdays div{text-align:center;font-size:10.5px;font-weight:600;color:var(--ink-3);padding:7px 0}
 .mscroll .mwdays div:first-child{color:var(--crit)}
@@ -789,6 +795,13 @@ span.wa-day{cursor:default;display:inline-flex;align-items:center;justify-conten
   body.print-sched #allweeks{display:block!important}
   .month,.evrow{break-inside:avoid}
   body.print-sched .printhead{display:block}
+  /* 「사용 방법 안내」 팝업 내용(범례·안내문)은 화면에서만 숨겨 두는 것이라
+     인쇄에는 그대로 실린다. 「이번 주 학습 배정」 팝업은 살아있는 편집 도구라
+     주간 그리드처럼 계속 뺀다(모달을 열어 둔 채 인쇄한 게 아니라면 기본값으로 이미 숨음). */
+  body.print-sched #help-modal{display:block!important;position:static;background:none;padding:0}
+  body.print-sched #help-modal .modal-card{max-width:none;max-height:none;box-shadow:none;border-radius:0;overflow:visible}
+  body.print-sched #help-modal .modal-head{display:none}
+  body.print-sched #help-modal .modal-body{padding:0;overflow:visible}
 }
 
 /* ── 시작 실패 안내 ── */
@@ -809,3 +822,25 @@ span.wa-day{cursor:default;display:inline-flex;align-items:center;justify-conten
 .syncbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .syncbtn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .syncbtn[disabled]{opacity:.5;cursor:default}
+
+/* ── 팝업(사용 방법 안내 · 이번 주 학습 배정) ──
+   내용 자체는 이미 있던 카드를 그대로 옮겨 쓴다. 열려 있는 동안 body 스크롤을
+   막아, 팝업 내부 스크롤과 뒤 페이지 스크롤이 겹치지 않게 한다. */
+body.modal-open{overflow:hidden}
+.modal-overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.44);
+  display:flex;align-items:center;justify-content:center;padding:18px}
+.modal-overlay[hidden]{display:none}
+.modal-card{background:var(--surface);border-radius:14px;box-shadow:var(--shadow);
+  max-width:560px;width:100%;max-height:86vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:14px 16px;border-bottom:1px solid var(--line);flex:none}
+.modal-head b{font-size:16px;font-weight:700}
+.modal-close{appearance:none;border:0;background:none;font-size:20px;line-height:1;
+  color:var(--ink-3);cursor:pointer;padding:4px 7px;border-radius:6px}
+.modal-close:hover{color:var(--ink);background:var(--surface-2)}
+.modal-close:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.modal-body{padding:16px;overflow-y:auto}
+.modal-body .wkassign{border:0;box-shadow:none;padding:0}
+.modal-body .calhead{margin-top:0}
+.modal-body h4{margin:20px 0 8px;font-size:13.5px;font-weight:700;color:var(--ink-2)}
+.modal-body h4:first-child{margin-top:0}
