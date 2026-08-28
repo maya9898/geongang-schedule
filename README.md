@@ -1,4 +1,4 @@
-# 건강이 스케줄
+# 건강이 스케줄 — 앱 (ver2-2)
 
 주간·월간 일정과 저녁 학습 체크리스트. 홈 화면에 추가하면 독립 실행되고, 오프라인에서도 열립니다.
 
@@ -35,8 +35,11 @@ icons/                192 · 512 · maskable · apple-touch · favicon
 
 ## 배포 (GitHub Pages)
 
-Settings → Pages → Source: **Deploy from a branch** / Branch `main` / 폴더 `/ (root)` → Save.
-1~2분 뒤 https://maya9898.github.io/geongang-schedule/ 에서 열립니다.
+1. 이 `app/` 내용을 **별도 public 저장소**의 루트에 올립니다
+2. Settings → Pages → Source: `main` 브랜치 / `/ (root)`
+3. `https://<계정>.github.io/<저장소>/` 로 열립니다
+
+> `maya9898/main` 은 비공개로 두세요. `archive/` 에 개인정보가 든 원본이 있어, public 으로 바꾸면 git 히스토리에 남아 함께 공개됩니다.
 
 ## 홈 화면에 추가
 
@@ -55,13 +58,13 @@ Settings → Pages → Source: **Deploy from a branch** / Branch `main` / 폴더
 
 ## QA
 
-검사는 그룹으로 나뉘어 있어 고친 자리만 골라 돌릴 수 있습니다. 어떤 그룹을 돌릴지는 개발 저장소의 `qa/MAP.md` 를 보세요.
+검사는 그룹으로 나뉘어 있어 고친 자리만 골라 돌릴 수 있습니다. 어떤 그룹을 돌릴지는 `qa/MAP.md` 를 보세요.
 
 ```bash
-(개발 저장소에서) node qa/run.js --list      # 그룹 목록
-(개발 저장소에서) node qa/run.js static      # 브라우저 없이 코드만 (0.2초)
-(개발 저장소에서) node qa/run.js study cross # 학습 + 교차 검증
-(개발 저장소에서) node qa/run.js             # 전체 217항목 (약 3분)
+node qa/run.js --list      # 그룹 목록
+node qa/run.js static      # 브라우저 없이 코드만 (0.2초)
+node qa/run.js study cross # 학습 + 교차 검증
+node qa/run.js             # 전체 241항목 (약 3분)
 ```
 
 ## 데이터 고치기
@@ -84,4 +87,23 @@ Settings → Pages → Source: **Deploy from a branch** / Branch `main` / 폴더
 
 `data.js` 는 이 표를 앱이 쓰는 형태로 옮기는 변환기입니다. 표에 문제가 있으면 (없는 과목을 시간표가 가리키는 등) 화면을 그리기 전에 어디가 잘못됐는지 알려 줍니다.
 
-고친 뒤에는 `sw.js` 의 `CACHE` 번호를 올리고, `(개발 저장소에서) node qa/run.js static data` 로 확인하세요.
+고친 뒤에는 `sw.js` 의 `CACHE` 번호를 올리고, `node qa/run.js static data` 로 확인하세요.
+
+## 글꼴
+
+Google Fonts 를 매번 불러오는 대신 `fonts/` 에 내장했습니다. 한글 1개(IBM
+Plex Sans KR), 영문·숫자 1개(IBM Plex Mono), 각각 Regular 굵기 하나뿐입니다.
+앱에서 실제로 쓰는 글자만 남긴 서브셋이라 둘 합쳐 44KB입니다.
+
+다른 굵기가 필요한 곳(제목·강조)은 브라우저가 자동으로 두껍게 그려 줍니다.
+완벽히 같지는 않지만, 이 정도 차이를 위해 파일을 늘리지 않기로 했습니다.
+
+`data.json`에 서브셋에 없는 새 한글이 들어가면 그 글자만 기기 기본 글꼴로
+보이고 나머지는 정상 동작합니다. 서브셋을 다시 만들려면:
+
+```bash
+node -e "..."   # app.js/index.html/data.json에서 쓰인 문자 전부 추출
+fonttools subset <원본.woff2> --text-file=<추출한 문자 목록> --flavor=woff2 --output-file=<출력.woff2>
+```
+
+라이선스는 `fonts/LICENSE.txt` — 둘 다 SIL Open Font License 1.1(무료·상업 사용 가능).

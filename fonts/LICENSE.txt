@@ -1,0 +1,19 @@
+이 폴더의 두 파일은 무료 오픈소스 글꼴에서 실제 앱에 쓰는 글자(한글 431자
++ 영문·숫자·기호)만 남긴 서브셋입니다. 둘 다 SIL Open Font License 1.1 —
+출처를 밝히면 자유롭게 쓰고 고칠 수 있는 라이선스입니다.
+
+IBMPlexSansKR-Regular.woff2
+  IBM Plex Sans KR — Copyright 2018 IBM Corp.
+  https://github.com/IBM/plex
+
+IBMPlexMono-Regular.woff2
+  IBM Plex Mono — Copyright 2017 IBM Corp.
+  https://github.com/IBM/plex
+
+원본 전체 글꼴 파일과 라이선스 전문은 위 저장소, 또는 Google Fonts
+(https://fonts.google.com) 에서 받을 수 있습니다.
+
+서브셋은 fonttools 로 만들었습니다: fonttools subset --text-file=<실제
+쓰는 글자 목록> --flavor=woff2. 데이터(data.json)에 서브셋에 없는 새 글자가
+들어가면, 그 글자만 화면 기본 글꼴로 대체돼 보이고 나머지 동작에는 영향이
+없습니다.

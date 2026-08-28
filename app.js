@@ -323,12 +323,26 @@ function applyFilter(){
   });
 }
 
-/* ── 시간표만 따로 내보내기 ── */
-const FONTLINK =
-  '<link rel="preconnect" href="https://fonts.googleapis.com">' +
-  '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
-  '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700' +
-  '&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">';
+/* ── 시간표만 따로 내보내기 ──
+   내보낸 HTML 파일은 다운로드 폴더 등 어디서 열릴지 알 수 없어서, 폰트 파일도
+   원격 링크 대신 base64 로 CSS 안에 심어 그 파일 하나로 완결되게 만든다. */
+async function embedFonts(css){
+  const toDataUri = async path => {
+    const buf = await (await fetch(path)).arrayBuffer();
+    let bin = '';
+    new Uint8Array(buf).forEach(b => { bin += String.fromCharCode(b); });
+    return 'data:font/woff2;base64,' + btoa(bin);
+  };
+  try {
+    const [sans, mono] = await Promise.all([
+      toDataUri('fonts/IBMPlexSansKR-Regular.woff2'),
+      toDataUri('fonts/IBMPlexMono-Regular.woff2')
+    ]);
+    return css
+      .replace('fonts/IBMPlexSansKR-Regular.woff2', sans)
+      .replace('fonts/IBMPlexMono-Regular.woff2', mono);
+  } catch (err) { return css; }   // 실패해도 화면용 스타일은 그대로 살아 있다
+}
 
 function stamp(){
   const d = new Date();
@@ -339,7 +353,7 @@ function stamp(){
 async function schedDoc(){
   // 스타일이 별도 파일이라 내보내기 문서에는 읽어서 심는다
   let exportCss = '';
-  try { exportCss = await (await fetch('styles.css')).text(); } catch(err){}
+  try { exportCss = await embedFonts(await (await fetch('styles.css')).text()); } catch(err){}
 
   const sched = $('p-sched').cloneNode(true);
   sched.classList.add('on');
@@ -374,7 +388,7 @@ async function schedDoc(){
   const total = fmtDur(EV.reduce((a,e) => a + dur(e), 0));
   return '<!doctype html><html lang="ko"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-    '<title>건강이 주간 시간표 · 2학기 학사 캘린더</title>' + FONTLINK +
+    '<title>건강이 주간 시간표 · 2학기 학사 캘린더</title>' +
     '<style>' + exportCss + '</style></head><body><main class="wrap" style="padding-top:22px">' +
     sched.outerHTML.replace('<p id="printsub"></p>',
       '<p>월–금 ' + EV.length + '개 일정 · 주 ' + total + ' · ' + stamp() + ' 기준</p>') +

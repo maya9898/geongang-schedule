@@ -2,6 +2,23 @@
    색·글자 크기 기준은 맨 위 :root 의 토큰에서 정합니다.
    요일 카드 안의 글자는 --fs-0 에 대한 배수(em)로만 정하므로,
    --fs-0 하나만 바꾸면 카드 전체가 비율을 지키며 커지거나 작아집니다. */
+
+/* 건강이 스케줄 — 내장 글꼴
+   한글 1개(IBM Plex Sans KR) · 영문/숫자 1개(IBM Plex Mono), 각각 Regular 하나뿐이다.
+   실제 화면에 쓰는 글자(한글 431자 + ASCII)만 남긴 서브셋이라 둘 합쳐 44KB다.
+   다른 굵기가 필요한 곳은 브라우저가 자동으로 두껍게 그려 준다(합성 볼드) —
+   완벽히 같지는 않지만 이 정도 차이를 위해 파일을 늘리지 않기로 했다. */
+@font-face{
+  font-family:"IBM Plex Sans KR";
+  src:url("fonts/IBMPlexSansKR-Regular.woff2") format("woff2");
+  font-weight:400; font-style:normal; font-display:swap;
+}
+@font-face{
+  font-family:"IBM Plex Mono";
+  src:url("fonts/IBMPlexMono-Regular.woff2") format("woff2");
+  font-weight:400; font-style:normal; font-display:swap;
+}
+
 :root{
   --bg:#F8F7F3; --surface:#FFFFFF; --surface-2:#F2F1EB;
   --line:#E5E3DB; --line-soft:#EFEEE7;
@@ -75,7 +92,7 @@ body{
   max-width:1060px;margin:0 auto;padding:16px 18px 0;
   display:flex;flex-wrap:wrap;align-items:baseline;gap:12px 16px;
 }
-.brand{font-family:"Gowun Batang","IBM Plex Sans KR",serif;font-weight:700;font-size:22px;letter-spacing:-.01em;margin:0}
+.brand{font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-weight:700;font-size:22px;letter-spacing:-.01em;margin:0}
 .today{font-size:12.5px;color:var(--ink-3);letter-spacing:.02em}
 .savechip{
   margin-left:6px;display:inline-flex;align-items:center;gap:6px;
@@ -122,7 +139,7 @@ body.mask-money .money{
 .panel{display:none}
 .panel.on{display:block}
 .eyebrow{font-size:11.5px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase;margin:0 0 8px;font-weight:600}
-h2{font-family:"Gowun Batang","IBM Plex Sans KR",serif;font-size:19px;font-weight:700;margin:34px 0 12px;letter-spacing:-.01em}
+h2{font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:19px;font-weight:700;margin:34px 0 12px;letter-spacing:-.01em}
 h2:first-of-type{margin-top:26px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
 
@@ -262,7 +279,7 @@ tfoot td{border-top:1px solid var(--line);font-weight:600;background:var(--surfa
 .xbtn[disabled]{opacity:.5;cursor:default;background:var(--surface)}
 .xnote{margin:-6px 0 12px;font-size:12px;color:var(--ink-2)}
 .printhead{display:none}
-.printhead h1{font-family:"Gowun Batang","IBM Plex Sans KR",serif;font-size:22px;margin:0 0 4px}
+.printhead h1{font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:22px;margin:0 0 4px}
 .printhead p{margin:0 0 14px;font-size:12px;color:var(--ink-2)}
 
 .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:10px;margin:0 0 18px}
@@ -394,7 +411,7 @@ tfoot td{border-top:1px solid var(--line);font-weight:600;background:var(--surfa
 
 /* ── 학사 캘린더 ── */
 .calhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin:22px 0 14px}
-.calhead h1{font-family:"Gowun Batang","IBM Plex Sans KR",serif;font-size:19px;font-weight:700;margin:0}
+.calhead h1{font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:19px;font-weight:700;margin:0}
 .calhead .sum{margin:0 0 0 auto;font-size:12.5px;color:var(--ink-3)}
 .calhead .sum b{color:var(--ink-2);font-weight:600}
 .callegend{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 16px}
