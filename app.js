@@ -1470,6 +1470,7 @@ let Cloud = null;
 
 async function setupSync(){
   const btn = $('syncbtn');
+  const emailBtn = $('syncbtn-email');
   if (!(window.KG_CONFIG && window.KG_CONFIG.firebase && window.createCloudStore)) return;
 
   btn.hidden = false;
@@ -1487,10 +1488,12 @@ async function setupSync(){
       btn.textContent = '동기화 켜기';
       btn.classList.remove('on');
       btn.title = '다른 기기와 기록을 함께 보려면 로그인하세요';
+      emailBtn.hidden = false;
       setSave('saved', LocalStore.label);
       return;
     }
 
+    emailBtn.hidden = true;
     Store = Cloud;
     btn.textContent = '동기화 중';
     btn.classList.add('on');
@@ -1531,6 +1534,21 @@ async function setupSync(){
     } catch (err) {
       setSave('error', '로그인하지 못했습니다 — 다시 시도해 주세요');
     } finally { btn.disabled = false; }
+  });
+
+  /* 구글 계정이 없는 기기(예: 아빠 아이폰)를 위한 대안 —
+     이메일로 받은 링크를 눌러 돌아오면 자동으로 로그인됩니다 */
+  emailBtn.addEventListener('click', async () => {
+    if (!Cloud) return;
+    const email = window.prompt('로그인 링크를 받을 이메일 주소를 입력해 주세요');
+    if (!email) return;
+    emailBtn.disabled = true;
+    try {
+      await Cloud.signInWithEmail(email);
+      setSave('saved', email + ' 로 로그인 링크를 보냈습니다 — 메일함에서 링크를 눌러 주세요');
+    } catch (err) {
+      setSave('error', '로그인 메일을 보내지 못했습니다 — 다시 시도해 주세요');
+    } finally { emailBtn.disabled = false; }
   });
 }
 

@@ -32,6 +32,23 @@ window.createCloudStore = async function createCloudStore(cfg){
   // 리디렉션으로 돌아온 경우의 결과를 먼저 흡수합니다
   try { await A.getRedirectResult(auth); } catch(err){}
 
+  // 구글 계정이 없는 기기(예: 아빠 아이폰)를 위한 이메일 링크 로그인.
+  // 메일함의 링크를 눌러 이 페이지로 돌아오면 여기서 로그인을 완결짓습니다.
+  const EMAIL_KEY = 'kg-signin-email';
+  if (A.isSignInWithEmailLink(auth, window.location.href)){
+    let email = null;
+    try { email = window.localStorage.getItem(EMAIL_KEY); } catch(err){}
+    if (!email) email = window.prompt('로그인에 쓴 이메일 주소를 다시 입력해 주세요');
+    if (email){
+      try {
+        await A.signInWithEmailLink(auth, email, window.location.href);
+        try { window.localStorage.removeItem(EMAIL_KEY); } catch(err){}
+      } catch(err){}
+    }
+    // 링크의 인증 파라미터를 주소창에서 지워 새로고침 시 재사용되지 않게 합니다
+    try { window.history.replaceState({}, '', window.location.pathname); } catch(err){}
+  }
+
   const pick = d => ({
     overrides: d.overrides || {},
     checks:    d.checks    || {},
@@ -68,6 +85,13 @@ window.createCloudStore = async function createCloudStore(cfg){
     async signOut(){
       if (unsub){ unsub(); unsub = null; }
       await A.signOut(auth);
+    },
+
+    /* 이메일로 로그인 링크를 보냅니다 — 구글 계정이 없어도 로그인할 수 있는 대안 */
+    async signInWithEmail(email){
+      const settings = { url: window.location.href, handleCodeInApp: true };
+      await A.sendSignInLinkToEmail(auth, email, settings);
+      try { window.localStorage.setItem(EMAIL_KEY, email); } catch(err){}
     },
 
     async load(){
