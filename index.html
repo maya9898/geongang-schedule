@@ -31,6 +31,7 @@
     <button type="button" class="saveretry" id="saveretry" hidden>다시 시도</button>
     <button type="button" class="syncbtn" id="syncbtn" hidden>동기화 켜기</button>
     <button type="button" class="syncbtn" id="syncbtn-email" hidden>이메일로 로그인</button>
+    <button type="button" class="syncbtn" id="familybtn" hidden>가족<span class="famdot" id="famdot" hidden></span></button>
   </div>
   <nav class="tabs" role="tablist" aria-label="보기 전환">
     <button class="tab" id="tab-cal" role="tab" aria-selected="true" aria-controls="p-cal">캘린더</button>
@@ -105,6 +106,19 @@
       <h4>저녁 학습 체크리스트</h4>
       <div class="callegend" id="studylegend"></div>
       <p class="note" style="border-left-color:var(--accent)">2학기 겨울방학 전까지 표시됩니다. 토도영어는 매일, 듀오링고·수학 학습지는 주 5일, 독서·그림일기는 주 3일이 목표이며 요일은 매주 자동으로 무작위 배정됩니다(주말은 하루 3건까지, 그림일기·독서기록지는 같은 날에 겹치지 않도록 배정) — 요일 카드에서 그날 학교·학원 일정이 끝난 자리에서 바로 체크하세요.</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="family-modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head"><b>가족 관리</b><button type="button" class="modal-close" id="family-close" aria-label="닫기">×</button></div>
+    <div class="modal-body">
+      <h4>승인 대기</h4>
+      <div id="fam-requests"></div>
+      <h4>동기화 중인 가족</h4>
+      <div id="fam-members"></div>
+      <p class="note" style="border-left-color:var(--ink-3)">가족에게 <strong style="color:var(--ink-2)">앱 주소</strong>를 보내고, 각자 <strong style="color:var(--ink-2)">「동기화 켜기」</strong>를 눌러 구글 계정으로 로그인하라고 하세요. 그러면 여기 <strong style="color:var(--ink-2)">승인 대기</strong>에 뜹니다. 승인하는 순간 그 사람 화면이 바로 동기화로 바뀝니다.</p>
     </div>
   </div>
 </div>

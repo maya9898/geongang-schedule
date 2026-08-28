@@ -824,6 +824,20 @@ span.wa-day{cursor:default;display:inline-flex;align-items:center;justify-conten
 .syncbtn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .syncbtn[disabled]{opacity:.5;cursor:default}
 
+/* ── 가족 관리 ── */
+.famdot{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;
+  margin-left:5px;padding:0 4px;border-radius:999px;background:var(--crit);color:#fff;
+  font-size:10.5px;font-weight:700;line-height:1}
+/* display 를 직접 지정한 요소는 브라우저 기본 [hidden] 규칙을 이겨 버려서
+   hidden 을 걸어도 계속 보인다 — 대기 인원 0명일 때 배지가 남던 이유. */
+.famdot[hidden]{display:none}
+.famrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  padding:9px 0;border-bottom:1px solid var(--line-soft)}
+.famrow:last-child{border-bottom:0}
+.famwho{display:flex;flex-direction:column;gap:1px;min-width:0}
+.famwho b{font-size:13.5px;font-weight:600;word-break:break-all}
+.famwho em{font-style:normal;font-size:11.5px;color:var(--ink-3);word-break:break-all}
+
 /* ── 팝업(사용 방법 안내 · 이번 주 학습 배정) ──
    내용 자체는 이미 있던 카드를 그대로 옮겨 쓴다. 열려 있는 동안 body 스크롤을
    막아, 팝업 내부 스크롤과 뒤 페이지 스크롤이 겹치지 않게 한다. */

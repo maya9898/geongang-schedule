@@ -58,12 +58,93 @@ window.createCloudStore = async function createCloudStore(cfg){
   });
 
   let unsub = null;
+  let unsubReq = null, unsubMem = null, unsubMine = null;
+
+  /* ── 가족 명단 ──
+     schedules 문서를 읽고 쓸 수 있는 사람은 members/{uid} 에 등록된 사람뿐입니다
+     (소유자 제외). 등록은 소유자만 할 수 있고, 나머지는 joinRequests/{uid} 에
+     가입 요청만 남길 수 있습니다 — 실제 방어선은 Firestore 보안 규칙입니다.
+     이메일을 화면에서 직접 입력받지 않는 이유: 타이핑한 이메일은 신원 증명이
+     되지 않습니다. 구글 로그인이 검증한 auth.token.email 만 신뢰합니다. */
+  const meRef  = () => F.doc(db, 'members', auth.currentUser.uid);
+  const reqRef = () => F.doc(db, 'joinRequests', auth.currentUser.uid);
+  const who = u => ({ email: u.email || '', name: u.displayName || '' });
+  let owner = false;
 
   return {
     name: 'cloud',
     label: '기기 간 동기화',
 
     get user(){ return auth.currentUser; },
+
+    /* ensureMembership() 이 정해 줍니다 */
+    get isOwner(){ return owner; },
+
+    /* 승인된 가족인지 확인하고, 소유자 여부까지 함께 가린다.
+       소유자 이메일은 앱 코드에 두지 않는다 — 이 파일은 공개 주소에 그대로
+       올라가기 때문이다. 대신 자기 members 문서에 소유자 표식을 써 보고,
+       규칙이 허락하는지로 가른다. 이메일은 규칙(비공개)에만 있으므로 다른
+       사람이 같은 시도를 하면 규칙이 막는다. */
+    async ensureMembership(){
+      owner = false;
+      const u = auth.currentUser;
+      if (!u) return false;
+      let snap;
+      try { snap = await F.getDoc(meRef()); }
+      catch (err) { return false; }
+      if (!snap.exists()){
+        try {                                   // 소유자만 이 쓰기가 통과한다
+          await F.setDoc(meRef(), Object.assign(who(u), { role: 'owner', approvedAt: Date.now() }));
+          snap = await F.getDoc(meRef());
+        } catch (err) { return false; }         // 소유자가 아니면 여기서 걸린다 — 정상
+      }
+      if (!snap.exists()) return false;
+      owner = (snap.data() || {}).role === 'owner';
+      return true;
+    },
+
+    /* 승인 대기 줄에 선다. 이미 서 있으면 아무것도 하지 않습니다. */
+    async requestJoin(){
+      const u = auth.currentUser;
+      if (!u) return;
+      const r = reqRef();
+      if ((await F.getDoc(r)).exists()) return;   // 규칙상 create 만 되므로 덮어쓰지 않는다
+      await F.setDoc(r, Object.assign(who(u), { requestedAt: Date.now() }));
+    },
+
+    /* 내가 승인되는 순간을 지켜본다 — 승인되면 새로고침 없이 바로 동기화로 넘어간다 */
+    watchMyMembership(cb){
+      if (unsubMine) unsubMine();
+      unsubMine = F.onSnapshot(meRef(), snap => { if (snap.exists()) cb(); }, () => {});
+      return unsubMine;
+    },
+
+    /* ── 아래 넷은 소유자만 씁니다 ── */
+    watchRequests(cb){
+      if (unsubReq) unsubReq();
+      unsubReq = F.onSnapshot(F.collection(db, 'joinRequests'),
+        s => cb(s.docs.map(d => Object.assign({ uid: d.id }, d.data()))), () => cb([]));
+      return unsubReq;
+    },
+
+    watchMembers(cb){
+      if (unsubMem) unsubMem();
+      unsubMem = F.onSnapshot(F.collection(db, 'members'),
+        s => cb(s.docs.map(d => Object.assign({ uid: d.id }, d.data()))), () => cb([]));
+      return unsubMem;
+    },
+
+    async approve(uid, info){
+      await F.setDoc(F.doc(db, 'members', uid), Object.assign({}, info, {
+        approvedAt: Date.now(),
+        approvedBy: (auth.currentUser && auth.currentUser.email) || null
+      }));
+      await F.deleteDoc(F.doc(db, 'joinRequests', uid));
+    },
+
+    async reject(uid){ await F.deleteDoc(F.doc(db, 'joinRequests', uid)); },
+
+    async removeMember(uid){ await F.deleteDoc(F.doc(db, 'members', uid)); },
 
     /* 로그인 상태가 바뀔 때마다 불립니다 (앱 시작 직후 한 번 포함) */
     onUser(cb){ return A.onAuthStateChanged(auth, cb); },
@@ -84,7 +165,8 @@ window.createCloudStore = async function createCloudStore(cfg){
     },
 
     async signOut(){
-      if (unsub){ unsub(); unsub = null; }
+      [unsub, unsubReq, unsubMem, unsubMine].forEach(f => { if (f) f(); });
+      unsub = unsubReq = unsubMem = unsubMine = null;
       await A.signOut(auth);
     },
 

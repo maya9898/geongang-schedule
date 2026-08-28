@@ -1627,9 +1627,37 @@ async function boot(){
    로그인 전까지는 지금처럼 이 기기 저장으로 그냥 씁니다. */
 let Cloud = null;
 
+/* 소유자 화면에서만 채워지는 가족 명단 — 「가족」 팝업이 이걸 그린다 */
+let famRequests = [], famMembers = [];
+
+function renderFamily(){
+  const dot = $('famdot');
+  dot.hidden = famRequests.length === 0;
+  dot.textContent = famRequests.length || '';
+
+  $('fam-requests').innerHTML = famRequests.length
+    ? famRequests.map(r =>
+        '<div class="famrow"><span class="famwho"><b>' + esc(r.name || r.email) + '</b>' +
+        (r.name ? '<em>' + esc(r.email) + '</em>' : '') + '</span>' +
+        '<span class="dp-ctrl"><button type="button" class="dp-btn on" data-famok="' + esc(r.uid) + '">승인</button>' +
+        '<button type="button" class="dp-btn warn" data-famno="' + esc(r.uid) + '">거절</button></span></div>').join('')
+    : '<p class="dp-empty">기다리는 사람이 없습니다.</p>';
+
+  const me = Cloud && Cloud.user ? Cloud.user.email : '';
+  $('fam-members').innerHTML =
+    '<div class="famrow"><span class="famwho"><b>' + esc(me) + '</b><em>나 · 승인하는 사람</em></span></div>' +
+    (famMembers.length
+      ? famMembers.map(m =>
+          '<div class="famrow"><span class="famwho"><b>' + esc(m.name || m.email) + '</b>' +
+          (m.name ? '<em>' + esc(m.email) + '</em>' : '') + '</span>' +
+          '<span class="dp-ctrl"><button type="button" class="dp-btn warn" data-famdel="' + esc(m.uid) + '">내보내기</button></span></div>').join('')
+      : '<p class="dp-empty">아직 승인한 가족이 없습니다.</p>');
+}
+
 async function setupSync(){
   const btn = $('syncbtn');
   const emailBtn = $('syncbtn-email');
+  const famBtn = $('familybtn');
   if (!(window.KG_CONFIG && window.KG_CONFIG.firebase && window.createCloudStore)) return;
 
   btn.hidden = false;
@@ -1641,18 +1669,8 @@ async function setupSync(){
     return;
   }
 
-  Cloud.onUser(async user => {
-    if (!user){                       // 로그아웃 상태 — 이 기기 저장으로 되돌린다
-      Store = LocalStore;
-      btn.textContent = '동기화 켜기';
-      btn.classList.remove('on');
-      btn.title = '다른 기기와 기록을 함께 보려면 로그인하세요';
-      emailBtn.hidden = false;
-      setSave('saved', LocalStore.label);
-      return;
-    }
-
-    emailBtn.hidden = true;
+  /* 승인된 사람만 여기까지 옵니다 — 클라우드를 저장소로 갈아끼우고 실시간 구독을 건다 */
+  async function activateCloud(user){
     Store = Cloud;
     btn.textContent = '동기화 중';
     btn.classList.add('on');
@@ -1682,6 +1700,47 @@ async function setupSync(){
       Store = LocalStore;
       setSave('local', '이 기기에만 저장 — 권한이 없거나 연결이 끊겼습니다');
     }
+  }
+
+  Cloud.onUser(async user => {
+    if (!user){                       // 로그아웃 상태 — 이 기기 저장으로 되돌린다
+      Store = LocalStore;
+      btn.textContent = '동기화 켜기';
+      btn.classList.remove('on');
+      btn.title = '다른 기기와 기록을 함께 보려면 로그인하세요';
+      emailBtn.hidden = false;
+      famBtn.hidden = true;
+      setSave('saved', LocalStore.label);
+      return;
+    }
+
+    emailBtn.hidden = true;
+
+    /* 승인된 가족인지 먼저 확인한다. 아니면 줄을 서고, 이 기기 저장으로 계속 쓴다 —
+       기록이 사라지지 않고, 승인되는 즉시 새로고침 없이 동기화로 넘어간다. */
+    if (!(await Cloud.ensureMembership())){
+      Store = LocalStore;
+      btn.textContent = '승인 대기 중';
+      btn.classList.remove('on');
+      btn.title = user.email + ' 로 로그인됨 — 승인을 기다리는 중입니다';
+      try {
+        await Cloud.requestJoin();
+        setSave('local', '가입 요청을 보냈습니다 — 승인되면 자동으로 동기화됩니다');
+      } catch (err) {
+        setSave('error', '가입 요청을 보내지 못했습니다 — 다시 시도해 주세요');
+      }
+      Cloud.watchMyMembership(() => activateCloud(user));
+      return;
+    }
+
+    // 소유자에게만 「가족」 버튼과 대기 인원 표시를 보여 준다
+    if (Cloud.isOwner){
+      famBtn.hidden = false;
+      Cloud.watchRequests(list => { famRequests = list; renderFamily(); });
+      Cloud.watchMembers(list => { famMembers = list; renderFamily(); });
+    }
+
+    await activateCloud(user);
   });
 
   btn.addEventListener('click', async () => {
@@ -1767,6 +1826,34 @@ function closeModal(id){
 $('help-btn').addEventListener('click', () => openModal('help-modal'));
 $('help-close').addEventListener('click', () => closeModal('help-modal'));
 $('help-modal').addEventListener('click', ev => { if (ev.target.id === 'help-modal') closeModal('help-modal'); });
+
+$('familybtn').addEventListener('click', () => { renderFamily(); openModal('family-modal'); });
+$('family-close').addEventListener('click', () => closeModal('family-modal'));
+$('family-modal').addEventListener('click', ev => { if (ev.target.id === 'family-modal') closeModal('family-modal'); });
+
+/* 승인·거절·내보내기 — 목록은 onSnapshot 이 다시 그려 주므로 여기서는 쓰기만 한다 */
+$('family-modal').addEventListener('click', async ev => {
+  const ok = ev.target.closest('[data-famok]');
+  const no = ev.target.closest('[data-famno]');
+  const del = ev.target.closest('[data-famdel]');
+  if (!ok && !no && !del) return;
+  const t = ok || no || del;
+  t.disabled = true;
+  try {
+    if (ok){
+      const r = famRequests.find(x => x.uid === ok.dataset.famok);
+      if (r) await Cloud.approve(r.uid, { email: r.email, name: r.name || '' });
+    } else if (no){
+      await Cloud.reject(no.dataset.famno);
+    } else {
+      const m = famMembers.find(x => x.uid === del.dataset.famdel);
+      if (m && confirm('「' + (m.name || m.email) + '」을(를) 내보냅니다.\n그 기기는 더 이상 동기화되지 않습니다.'))
+        await Cloud.removeMember(m.uid);
+    }
+  } catch (err) {
+    alert('처리하지 못했습니다. 연결을 확인하고 다시 시도해 주세요.');
+  } finally { t.disabled = false; }
+});
 
 $('assign-btn').addEventListener('click', () => openModal('assign-modal'));
 $('assign-close').addEventListener('click', () => closeModal('assign-modal'));
