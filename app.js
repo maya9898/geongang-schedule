@@ -7,7 +7,7 @@
    저장 위치는 어댑터 하나로 갈립니다. 기본은 이 기기(localStorage)이고,
    app-config.js 가 window.KG_CONFIG.firebase 를 주면 클라우드로 올라탑니다.
    화면 코드는 Store 만 보므로 어댑터를 바꿔도 나머지는 손대지 않습니다. */
-const DATASETS = ['overrides', 'checks', 'assigns', 'studyMeta'];
+const DATASETS = ['overrides', 'checks', 'assigns', 'studyMeta', 'customEvents'];
 const LS_PREFIX = 'kg-schedule/';
 
 const LocalStore = {
@@ -33,10 +33,24 @@ let overrides = {};
 let checks = {};
 let assigns = {};
 let studyMeta = { added: [], removed: [], renamed: {}, special: {} };
+let customEvents = []; // 사용자가 달력에 직접 추가한 일정(여행·체험 등) — [{id,d,to,t,k}]
 let writable = true;
 let saveTimer = null;
 let editingStudyId = null;
+let editingEventId = null;
 let saveRetryCount = 0;
+
+/* 사용자가 직접 추가하는 일정의 종류. 학사일정(KIND, data.json)과 달리 코드에 고정된
+   작은 팔레트다 — 학교가 정하는 값이 아니라 화면 표시용 분류일 뿐이라 표로 뺄 이유가 없다. */
+const CUSTOM_KIND = {
+  trip:   { n: '여행',      i: '✈️' },
+  outing: { n: '체험학습',   i: '🎒' },
+  etc:    { n: '기타 일정',  i: '📌' }
+};
+const kindColor = k => (KIND[k] ? KIND[k].c : 'var(--s-family)');
+const kindName  = k => (KIND[k] ? KIND[k].n : (CUSTOM_KIND[k] ? CUSTOM_KIND[k].n : '기타 일정'));
+const kindOptions = sel => Object.keys(CUSTOM_KIND).map(k =>
+  '<option value="' + k + '"' + (k === sel ? ' selected' : '') + '>' + CUSTOM_KIND[k].i + ' ' + CUSTOM_KIND[k].n + '</option>').join('');
 
 const $ = id => document.getElementById(id);
 
@@ -53,7 +67,7 @@ function esc(s){
 }
 
 /* ── 저장 ── */
-const snapshot = () => ({ overrides, checks, assigns, studyMeta });
+const snapshot = () => ({ overrides, checks, assigns, studyMeta, customEvents });
 
 /* 클라우드를 쓰더라도 이 기기 사본은 항상 남깁니다 — 오프라인에서 바로 열리도록 */
 function mirror(){
@@ -533,6 +547,45 @@ function removeSpecialStudy(dateKey, id){
   }
   studyChanged();
 }
+
+/* ── 개인 일정(여행·체험) — 달력에 직접 추가·수정·삭제 ── */
+function customChanged(){
+  dataChanged();
+  buildCalendar();
+  if (selectedDate) renderDayPanel(selectedDate);
+  queueSave();
+}
+
+function addCustomEvent(dateKey, title, kind, endDateKey){
+  title = (title || '').trim();
+  if (!title) return;
+  const item = { id: 'evt_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                 t: title, d: dateKey, k: CUSTOM_KIND[kind] ? kind : 'etc' };
+  if (endDateKey && endDateKey > dateKey) item.to = endDateKey;
+  customEvents = customEvents.concat([item]);
+  editingEventId = null;
+  customChanged();
+}
+
+function updateCustomEvent(id, title, kind, dateKey, endDateKey){
+  title = (title || '').trim();
+  if (!title) return;
+  customEvents = customEvents.map(e => {
+    if (e.id !== id) return e;
+    const next = { id: e.id, t: title, d: dateKey || e.d, k: CUSTOM_KIND[kind] ? kind : 'etc' };
+    if (endDateKey && endDateKey > next.d) next.to = endDateKey;
+    return next;
+  });
+  editingEventId = null;
+  customChanged();
+}
+
+function removeCustomEvent(id){
+  customEvents = customEvents.filter(e => e.id !== id);
+  if (editingEventId === id) editingEventId = null;
+  customChanged();
+}
+
 function mondayOf(dateKey){
   const d = parse(dateKey), wd = d.getDay();
   const diff = wd === 0 ? -6 : 1 - wd;
@@ -572,6 +625,33 @@ function expand(list){
     }
   });
   return map;
+}
+
+/* customEvents 는 학사일정과 달리 주말에도 그대로 있어야 하므로(여행은 주말이 더 많다)
+   expand() 의 평일 전용 필터를 타지 않는 전용 버전을 쓴다. */
+function expandCustom(list){
+  const map = {};
+  list.forEach(e => {
+    let d = parse(e.d); const end = parse(e.to || e.d);
+    while (d <= end){
+      (map[dkey(d)] = map[dkey(d)] || []).push(e);
+      d = new Date(d.getFullYear(), d.getMonth(), d.getDate()+1);
+    }
+  });
+  return map;
+}
+
+function mergeByDay(...maps){
+  const out = {};
+  maps.forEach(m => Object.keys(m).forEach(k => { out[k] = (out[k] || []).concat(m[k]); }));
+  return out;
+}
+
+/* "9/5(토)" 또는 "9/5(토)–9/7(월)" — 일정 목록·개인 일정 카드가 함께 쓴다 */
+function fmtRange(e){
+  const a = parse(e.d), b = parse(e.to || e.d);
+  const one = d => (d.getMonth()+1) + '/' + d.getDate() + '(' + ['일','월','화','수','목','금','토'][d.getDay()] + ')';
+  return e.to ? one(a) + '–' + one(b) : one(a);
 }
 
 function computeOffDays(){
@@ -800,9 +880,9 @@ function dayCellParts(k, d, wd, offDays, byDay){
 
   let banner = '', title = '';
   if (evs.length){
-    const c = KIND[evs[0].k].c;
+    const c = kindColor(evs[0].k);
     banner = '<div class="dots" style="--c:' + c + '">' + evs.map(() => '<i></i>').join('') + '</div>' +
-      evs.map(e => '<div class="ev" style="--c:' + KIND[e.k].c + '">' + (e.s || e.t) + '</div>').join('');
+      evs.map(e => '<div class="ev" style="--c:' + kindColor(e.k) + '">' + (e.s || e.t) + '</div>').join('');
     title += (title ? ' · ' : '') + evs.map(e => e.t).join(' · ');
   } else if (isOff){
     banner = '<div class="ev" style="--c:var(--crit)">' + offDays[k] + '</div>';
@@ -882,7 +962,7 @@ function monthCellHtml(k, dd, wd, offDays, byDay, todayKey){
 
 /* 학기 전체를 월별로 훑는 정적 달력 HTML — PDF/HTML 내보내기에서만 사용 */
 function buildAllWeeksHtml(){
-  const byDay = expand(ACAD);
+  const byDay = mergeByDay(expand(ACAD), expandCustom(customEvents));
   const offDays = computeOffDays();
   const s = parse(SEM.start), en = parse(SEM.end);
   const todayKey = dkey(new Date());
@@ -954,7 +1034,7 @@ function weekDayColHtml(k, wd, offDays, byDay, weekKey, todayKey){
 /* 주간 달력을 화면에 그린다 — 상단 라벨, 학습 배정 요약, 7일 컬럼 */
 function renderWeek(weekKey){
   currentWeekKey = weekKey;
-  const byDay = expand(ACAD);
+  const byDay = mergeByDay(expand(ACAD), expandCustom(customEvents));
   const offDays = computeOffDays();
   const todayKey = dkey(new Date());
   const mon = parse(weekKey);
@@ -1025,7 +1105,7 @@ function initialMonthKey(){
 function renderMonth(mk){
   currentMonthKey = mk;
   const [y, m] = mk.split('-').map(Number);
-  const byDay = expand(ACAD), offDays = computeOffDays(), todayKey = dkey(new Date());
+  const byDay = mergeByDay(expand(ACAD), expandCustom(customEvents)), offDays = computeOffDays(), todayKey = dkey(new Date());
   const first = new Date(y, m - 1, 1), dim = new Date(y, m, 0).getDate();
 
   let cells = '';
@@ -1108,11 +1188,6 @@ function buildCalendar(){
     (Object.keys(overrides).length ? ' · 조정 <b>' + Object.keys(overrides).length + '건</b>' : '');
 
   // 일정 목록
-  const fmtRange = e => {
-    const a = parse(e.d), b = parse(e.to || e.d);
-    const one = d => (d.getMonth()+1) + '/' + d.getDate() + '(' + ['일','월','화','수','목','금','토'][d.getDay()] + ')';
-    return e.to ? one(a) + '–' + one(b) : one(a);
-  };
   let listHtml = '', lastMon = '';
   ACAD.forEach(e => {
     const d = parse(e.d), mon = d.getFullYear() + '년 ' + (d.getMonth()+1) + '월';
@@ -1278,6 +1353,40 @@ function renderDayPanel(dateKey){
       '<button type="button" class="wa-mini on" id="sp-additem-btn" data-spdate="' + dateKey + '">+ 추가</button></div>'
     : '';
 
+  /* 가족 일정(여행·체험) — 이 날짜가 시작~끝 범위 안에 있는 것만 보여준다 */
+  const dayEvents = customEvents.filter(e => dateKey >= e.d && dateKey <= (e.to || e.d));
+  const eventRows = dayEvents.length
+    ? dayEvents.map(e => {
+        if (editingEventId === e.id){
+          return '<div class="dprow" style="--c:' + kindColor(e.k) + '"><div class="dp-moveform" style="flex-wrap:wrap">' +
+            '<input type="text" class="mf-note" id="ev-edit-title" value="' + esc(e.t) + '" maxlength="30" style="flex:1;min-width:140px">' +
+            '<select class="mf-note" id="ev-edit-kind">' + kindOptions(e.k) + '</select>' +
+            '<input type="date" class="mf-date" id="ev-edit-start" value="' + e.d + '">' +
+            '<input type="date" class="mf-date" id="ev-edit-end" value="' + (e.to || e.d) + '" title="여러 날이면 마지막 날짜">' +
+            '<button type="button" class="dp-btn on" data-evsave="' + e.id + '">저장</button>' +
+            '<button type="button" class="dp-btn" data-evcancel="1">취소</button>' +
+            '</div></div>';
+        }
+        return '<div class="dprow" style="--c:' + kindColor(e.k) + '">' +
+          '<span class="tchip" style="--c:' + kindColor(e.k) + '">' + (CUSTOM_KIND[e.k] ? CUSTOM_KIND[e.k].i : '📌') +
+          '<span class="nm">' + esc(e.t) + '</span></span>' +
+          '<span class="dp-status">' + fmtRange(e) + ' · ' + kindName(e.k) + '</span>' +
+          (writable ? '<div class="dp-ctrl">' +
+            '<button type="button" class="dp-btn" data-evedit="' + e.id + '">수정</button>' +
+            '<button type="button" class="dp-btn warn" data-evdel="' + e.id + '">삭제</button></div>' : '') +
+          '</div>';
+      }).join('')
+    : '<p class="dp-empty">이 날에 추가한 여행·체험 일정이 아직 없습니다.</p>';
+
+  const eventAdd = writable
+    ? '<div class="wa-addrow" style="border-top:0;padding-top:0;margin-top:2px;flex-wrap:wrap">' +
+      '<input type="text" class="wa-newitem-input" id="ev-new-title" placeholder="예 · 제주도 가족여행" maxlength="30" style="flex:1;min-width:140px">' +
+      '<select class="mf-note" id="ev-new-kind">' + kindOptions('trip') + '</select>' +
+      '<input type="date" class="mf-date" id="ev-new-start" value="' + dateKey + '">' +
+      '<input type="date" class="mf-date" id="ev-new-end" value="' + dateKey + '" title="여러 날이면 마지막 날짜">' +
+      '<button type="button" class="wa-mini on" id="ev-add-btn" data-evdate="' + dateKey + '">+ 추가</button></div>'
+    : '';
+
   const repeatRows = STUDY.map(it => {
     const days = it.target >= 7 ? '매일'
       : [...assignedDaysForWeek(wkForDay, it)].sort((a,b) => a - b).map(i => WNAMES[i]).join('·');
@@ -1296,6 +1405,8 @@ function renderDayPanel(dateKey){
     (rows || '<p class="dp-empty">이 날은 늘봄·방과후·학원 일정이 없습니다.</p>') +
     (writable ? bulk : '') +
     '</div>' +
+    '<div class="dp-section"><h4>가족 일정 <span class="dp-quota">여행 · 체험학습</span></h4>' +
+      eventRows + eventAdd + '</div>' +
     '<div class="dp-section"><h4>특별 학습 <span class="dp-quota">이 날 하루만</span></h4>' +
       specialRows + specialAdd + '</div>' +
     '<div class="dp-section"><h4>매주 반복 학습</h4>' + repeatRows +
@@ -1330,6 +1441,32 @@ document.addEventListener('click', ev => {
     b.textContent = briefMode ? '자세히 보기' : '간략히 보기';
     try { localStorage.setItem(LS_PREFIX + 'brief', briefMode ? '1' : ''); } catch(err){}
     renderMonth(currentMonthKey);
+    return;
+  }
+
+  /* ── 가족 일정(여행·체험) 추가 · 수정 · 삭제 ── */
+  const evAdd = ev.target.closest('#ev-add-btn');
+  if (evAdd){
+    const title = $('ev-new-title'), kind = $('ev-new-kind'), start = $('ev-new-start'), end = $('ev-new-end');
+    addCustomEvent(evAdd.dataset.evdate, title ? title.value : '', kind ? kind.value : 'trip', end ? end.value : '');
+    return;
+  }
+  const evEdit = ev.target.closest('[data-evedit]');
+  if (evEdit){ editingEventId = evEdit.dataset.evedit; renderDayPanel(selectedDate); return; }
+  const evCancel = ev.target.closest('[data-evcancel]');
+  if (evCancel){ editingEventId = null; renderDayPanel(selectedDate); return; }
+  const evSave = ev.target.closest('[data-evsave]');
+  if (evSave){
+    const id = evSave.dataset.evsave;
+    const title = $('ev-edit-title'), kind = $('ev-edit-kind'), start = $('ev-edit-start'), end = $('ev-edit-end');
+    updateCustomEvent(id, title ? title.value : '', kind ? kind.value : 'trip',
+      start ? start.value : selectedDate, end ? end.value : '');
+    return;
+  }
+  const evDel = ev.target.closest('[data-evdel]');
+  if (evDel){
+    const e = customEvents.find(x => x.id === evDel.dataset.evdel);
+    if (e && confirm('「' + e.t + '」 일정을 삭제할까요?')) removeCustomEvent(e.id);
     return;
   }
 
@@ -1429,6 +1566,7 @@ document.addEventListener('click', ev => {
 });
 
 document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && editingEventId){ editingEventId = null; renderDayPanel(selectedDate); return; }
   if (ev.key === 'Escape' && selectedDate) closeDayPanel();
   if (ev.key === 'Escape' && editingStudyId){ editingStudyId = null; renderWeek(currentWeekKey); return; }
   if (ev.key === 'Enter' && ev.target && ev.target.id === 'wa-rename-input'){
@@ -1444,6 +1582,19 @@ document.addEventListener('keydown', ev => {
   if (ev.key === 'Enter' && ev.target && ev.target.id === 'sp-newitem-input'){
     ev.preventDefault();
     addSpecialStudy(ev.target.dataset.spdate, ev.target.value);
+    return;
+  }
+  if (ev.key === 'Enter' && ev.target && ev.target.id === 'ev-new-title'){
+    ev.preventDefault();
+    const kind = $('ev-new-kind'), end = $('ev-new-end');
+    addCustomEvent(ev.target.dataset.evdate || selectedDate, ev.target.value, kind ? kind.value : 'trip', end ? end.value : '');
+    return;
+  }
+  if (ev.key === 'Enter' && ev.target && ev.target.id === 'ev-edit-title'){
+    ev.preventDefault();
+    const kind = $('ev-edit-kind'), start = $('ev-edit-start'), end = $('ev-edit-end');
+    updateCustomEvent(editingEventId, ev.target.value, kind ? kind.value : 'trip',
+      start ? start.value : selectedDate, end ? end.value : '');
     return;
   }
 });
@@ -1563,6 +1714,7 @@ function apply(d, allowEmpty){
   dataChanged();
   const obj = v => (v && typeof v === 'object') ? v : null;
   const o = obj(d.overrides), c = obj(d.checks), a = obj(d.assigns), s = obj(d.studyMeta);
+  const ce = Array.isArray(d.customEvents) ? d.customEvents : null;
   if (o || allowEmpty) overrides = o || {};
   if (c || allowEmpty) checks = c || {};
   if (a || allowEmpty) assigns = a || {};
@@ -1573,6 +1725,11 @@ function apply(d, allowEmpty){
           renamed: obj(s.renamed) || {},
           special: obj(s.special) || {} }
       : { added: [], removed: [], renamed: {}, special: {} };
+  }
+  if (ce || allowEmpty){
+    customEvents = (ce || []).filter(e => e && e.id && e.d && e.t)
+      .map(e => ({ id: e.id, d: e.d, t: e.t, k: CUSTOM_KIND[e.k] ? e.k : 'etc',
+                   to: (e.to && e.to > e.d) ? e.to : undefined }));
   }
 }
 

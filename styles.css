@@ -32,6 +32,7 @@
 
   --s-neulbom:#7E786C; --s-after:#5E7C9E;
   --s-book:#7E6B93;    --s-piano:#8E7A3E; --s-asobi:#5F7A63; --s-tkd:#9A5F56;
+  --s-family:#A15C82;
 
   --tint:17%;
 
@@ -53,6 +54,7 @@
 
     --s-neulbom:#B9B2A4; --s-after:#9DB8D3;
     --s-book:#BBA8CD;    --s-piano:#CFB871; --s-asobi:#A2BCA5; --s-tkd:#D19B92;
+    --s-family:#D2A0BC;
 
     --tint:24%;
   }
@@ -70,6 +72,7 @@
 
   --s-neulbom:#B9B2A4; --s-after:#9DB8D3;
   --s-book:#BBA8CD;    --s-piano:#CFB871; --s-asobi:#A2BCA5; --s-tkd:#D19B92;
+  --s-family:#D2A0BC;
 
   --tint:24%;
 }

@@ -50,10 +50,11 @@ window.createCloudStore = async function createCloudStore(cfg){
   }
 
   const pick = d => ({
-    overrides: d.overrides || {},
-    checks:    d.checks    || {},
-    assigns:   d.assigns   || {},
-    studyMeta: d.studyMeta || null
+    overrides:    d.overrides    || {},
+    checks:       d.checks       || {},
+    assigns:      d.assigns      || {},
+    studyMeta:    d.studyMeta    || null,
+    customEvents: d.customEvents || []
   });
 
   let unsub = null;
@@ -101,10 +102,11 @@ window.createCloudStore = async function createCloudStore(cfg){
 
     async save(data){
       await F.setDoc(ref, {
-        overrides: data.overrides,
-        checks:    data.checks,
-        assigns:   data.assigns,
-        studyMeta: data.studyMeta,
+        overrides:    data.overrides,
+        checks:       data.checks,
+        assigns:      data.assigns,
+        studyMeta:    data.studyMeta,
+        customEvents: data.customEvents || [],
         updatedAt: Date.now(),
         updatedBy: (auth.currentUser && auth.currentUser.email) || null
       });
