@@ -1,7 +1,7 @@
 /* 건강이 스케줄 — 서비스 워커
    앱 껍데기를 캐시에 담아 두어 데이터가 없는 곳에서도 열리게 합니다.
    앱을 고칠 때마다 CACHE 뒤 번호를 올리면 이전 캐시는 자동으로 비워집니다. */
-const CACHE = 'kg-schedule-v14';
+const CACHE = 'kg-schedule-v15';
 
 const ASSETS = [
   './',
@@ -16,6 +16,7 @@ const ASSETS = [
   './app-config.js',
   './cloud-store.js',
   './icons/icon-192.png',
+  './icons/header-logo.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
