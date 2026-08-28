@@ -1446,28 +1446,78 @@ async function boot(){
   buildCalendar();
   setSave('saved', LocalStore.label);
 
-  // 클라우드 설정이 있으면 올라타고, 받아온 내용으로 다시 그립니다.
-  if (window.KG_CONFIG && window.KG_CONFIG.firebase && window.createCloudStore){
+  await setupSync();
+}
+
+/* ── 기기 간 동기화 ──
+   설정이 없으면 아무 일도 하지 않습니다. 설정이 있어도 로그인은 선택이라,
+   로그인 전까지는 지금처럼 이 기기 저장으로 그냥 씁니다. */
+let Cloud = null;
+
+async function setupSync(){
+  const btn = $('syncbtn');
+  if (!(window.KG_CONFIG && window.KG_CONFIG.firebase && window.createCloudStore)) return;
+
+  btn.hidden = false;
+  try {
+    Cloud = await window.createCloudStore(window.KG_CONFIG.firebase);
+  } catch (err) {
+    btn.hidden = true;
+    setSave('local', '이 기기에만 저장 — 동기화를 준비하지 못했습니다');
+    return;
+  }
+
+  Cloud.onUser(async user => {
+    if (!user){                       // 로그아웃 상태 — 이 기기 저장으로 되돌린다
+      Store = LocalStore;
+      btn.textContent = '동기화 켜기';
+      btn.classList.remove('on');
+      btn.title = '다른 기기와 기록을 함께 보려면 로그인하세요';
+      setSave('saved', LocalStore.label);
+      return;
+    }
+
+    Store = Cloud;
+    btn.textContent = '동기화 중';
+    btn.classList.add('on');
+    btn.title = user.email + ' 로 로그인됨 — 눌러서 끄기';
     setSave('saving', '동기화 중…');
     try {
-      Store = await window.createCloudStore(window.KG_CONFIG.firebase);
-      apply(await Store.load(), true);
+      const remote = await Cloud.load();
+      if (remote && Object.keys(remote).length){
+        apply(remote, true);          // 클라우드 내용을 이 기기에 반영
+      } else {
+        await Cloud.save(snapshot()); // 처음이면 이 기기 내용을 올려 시작한다
+      }
       applyStudyMeta();
       dataChanged();
       buildCalendar();
+      if (selectedDate) renderDayPanel(selectedDate);
       setSave('saved', '저장됨 · 기기 간 동기화');
-      Store.subscribe && Store.subscribe(remote => {
-        apply(remote, true);
+
+      Cloud.subscribe(remote2 => {    // 다른 기기에서 바뀌면 그대로 따라온다
+        apply(remote2, true);
         applyStudyMeta();
         dataChanged();
         buildCalendar();
         if (selectedDate) renderDayPanel(selectedDate);
       });
-    } catch(err){
+    } catch (err) {
       Store = LocalStore;
-      setSave('local', '이 기기에만 저장 — 동기화 연결 실패');
+      setSave('local', '이 기기에만 저장 — 권한이 없거나 연결이 끊겼습니다');
     }
-  }
+  });
+
+  btn.addEventListener('click', async () => {
+    if (!Cloud) return;
+    btn.disabled = true;
+    try {
+      if (Cloud.user) await Cloud.signOut();
+      else await Cloud.signIn();
+    } catch (err) {
+      setSave('error', '로그인하지 못했습니다 — 다시 시도해 주세요');
+    } finally { btn.disabled = false; }
+  });
 }
 
 /* 불러온 묶음을 화면 상태에 반영. keepEmpty=false 면 빈 값은 무시해

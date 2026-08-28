@@ -780,3 +780,12 @@ span.wa-day{cursor:default;display:inline-flex;align-items:center;justify-conten
 .startup-error pre{margin:0;padding:10px 12px;background:var(--surface-2);border-radius:8px;
   font-family:"IBM Plex Mono",monospace;font-size:12px;line-height:1.6;color:var(--ink-2);
   white-space:pre-wrap;word-break:break-word;overflow-x:auto}
+
+/* ── 기기 간 동기화 버튼 ── */
+.syncbtn{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+  font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;border-radius:999px;
+  padding:4px 11px;margin-left:6px;white-space:nowrap}
+.syncbtn:hover{border-color:var(--accent);color:var(--accent)}
+.syncbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.syncbtn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.syncbtn[disabled]{opacity:.5;cursor:default}
