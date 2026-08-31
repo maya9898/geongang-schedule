@@ -859,3 +859,44 @@ body.modal-open{overflow:hidden}
 .modal-body .calhead{margin-top:0}
 .modal-body h4{margin:20px 0 8px;font-size:13.5px;font-weight:700;color:var(--ink-2)}
 .modal-body h4:first-child{margin-top:0}
+
+/* ── 오늘 날짜 한 줄 ──
+   양력이 기본이고 음력은 «약식»으로 옆에 붙는다. 매일 보는 값이라 색을 쓰지
+   않는다 — 도화지에 검은 글씨다. 음력만 한 단계 옅게 두어 «덧붙는 정보»임이
+   보이게 한다. 음력을 모르는 환경에서는 그 span 자체가 없다. */
+.todayline{
+  flex-basis: 100%; margin: 6px 0 0; display: flex; align-items: baseline; gap: 8px;
+  font-size: .95em; color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.tl-lunar{
+  font-size: .9em; color: var(--ink-3);
+  padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px;
+}
+
+/* ── 학습 체크박스 ──
+   전에는 아이콘만 있고 켜지면 ✅ 로 바뀌었다. 그래서 «누를 수 있는 것인지»
+   화면만 봐서는 알 수가 없었다 — 만든 사람 말고는 아무도 모른다.
+   이제 빈 네모를 항상 보여 준다. 상태는 네모가 지고, 아이콘은 무엇인지만 말한다.
+
+   시스템 기본 체크박스를 쓰지 않는다 — 기기마다 모양이 달라 앱이 남의 것처럼
+   보인다. 카드와 같은 문법(둥근 모서리 · 1.5px 테두리 · 강조색)으로 그린다. */
+.wchk .wc-box{
+  flex: 0 0 auto; position: relative; width: 17px; height: 17px; margin-top: 1px;
+  border: 1.5px solid var(--ink-3); border-radius: 5px; background: var(--surface);
+  transition: background .12s ease, border-color .12s ease;
+}
+/* 체크 표시는 글꼴이 아니라 선으로 그린다 — 어느 기기에서나 같은 모양이 된다 */
+.wchk .wc-box::after{
+  content: ''; position: absolute; left: 4.5px; top: 1px;
+  width: 4px; height: 8px; border: solid var(--accent-ink);
+  border-width: 0 2px 2px 0; transform: rotate(45deg);
+  opacity: 0; transition: opacity .12s ease;
+}
+.wchk:hover .wc-box{ border-color: var(--accent); }
+.wchk.on .wc-box{ background: var(--accent); border-color: var(--accent); }
+.wchk.on .wc-box::after{ opacity: 1; }
+/* 특별 학습(그날 하루만)은 원래 주황 계열이라 체크박스도 따라간다 */
+.wchk.sp .wc-box{ border-color: var(--warn); }
+.wchk.sp.on .wc-box{ background: var(--warn); border-color: var(--warn); }
+/* 완료해도 이름을 지우지 않는다 — 무엇을 했는지 보여야 뿌듯하다 */
+.wchk.on .wc-n{ font-weight: 600; }

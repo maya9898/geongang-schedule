@@ -1024,7 +1024,10 @@ function weekDayColHtml(k, wd, offDays, byDay, weekKey, todayKey){
         return '<button type="button" class="wchk' + (on ? ' on' : '') + (it.special ? ' sp' : '') +
           '" data-check="' + k + '::' + it.id + '" aria-pressed="' + on + '" title="' +
           esc(it.n) + (on ? ' — 완료' : ' — 미완료') + '">' +
-          '<span class="wc-ic" aria-hidden="true">' + (on ? '✅' : it.icon) + '</span>' +
+          /* 빈 체크박스를 «항상» 보여 준다 — 아이콘만 있으면 누를 수 있는지
+             알 수가 없다. 상태는 이 네모가 지고, 아이콘은 «무엇인지»만 말한다. */
+          '<span class="wc-box" aria-hidden="true"></span>' +
+          '<span class="wc-ic" aria-hidden="true">' + it.icon + '</span>' +
           '<span class="wc-n">' + esc(it.n) + '</span></button>';
       }).join('') +
       '<p class="wstudy-sum' + (doneN === dayStudy.length ? ' all' : '') + '">' +
@@ -1607,11 +1610,28 @@ document.addEventListener('keydown', ev => {
   }
 });
 
+/* 오늘 날짜 한 줄 — 양력이 기본이고 음력은 약식으로 옆에 붙는다.
+   음력을 모르는 환경에서는 그 부분만 비운다. 틀린 음력을 보여 주느니
+   없는 편이 낫다 — 생일·제사에 쓰는 값이다(lunar.js). */
+function renderTodayLine(now){
+  const box = $('todayline');
+  if (!box) return;
+  const d = now || new Date();
+  const k = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' +
+            String(d.getDate()).padStart(2,'0');
+  const solar = d.getFullYear() + '년 ' + (d.getMonth() + 1) + '월 ' + d.getDate() + '일 '
+              + ['일','월','화','수','목','금','토'][d.getDay()] + '요일';
+  const lunar = PlannerCore.lunar.short(k);
+  box.innerHTML = '<span class="tl-solar">' + esc(solar) + '</span>'
+    + (lunar ? '<span class="tl-lunar" title="음력">' + esc(lunar) + '</span>' : '');
+}
+
 /* ═══════════ 부팅 ═══════════ */
 async function boot(){
   const now = new Date();
   $('today').textContent = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' +
     String(now.getDate()).padStart(2,'0') + ' ' + ['일','월','화','수','목','금','토'][now.getDay()] + '요일';
+  renderTodayLine(now);
 
   // 이 기기 사본을 먼저 그려서 오프라인에서도 즉시 열립니다.
   apply(await LocalStore.load());
@@ -1916,3 +1936,24 @@ if ('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw.js').catch(() => {});
   });
 }
+
+/* ── 검사용 창구 ──
+   qa 의 여러 그룹이 앱 안의 계산을 직접 불러 화면과 대조한다. 찐한플래너는
+   모듈로 나뉘어 전역이 없으므로 «볼 수 있는 것»을 명시적으로 열어 두었는데,
+   검사를 두 앱이 함께 쓰므로 여기에도 같은 창구를 둔다.
+   읽기만 하는 창구다 — 이걸로 값을 바꾸지 않는다. */
+window.__app = {
+  get currentWeekKey(){ return currentWeekKey; },
+  get STUDY(){ return STUDY; },
+  get activeDay(){ return activeDay; },
+  assignedDaysForWeek: assignedDaysForWeek,
+  computeAutoWeekPlan: computeAutoWeekPlan,
+  dayStudyList: dayStudyList,
+  instancesFor: instancesFor,
+  setActiveDay: setActiveDay,
+  addCustomEvent: addCustomEvent,
+  schedDoc: schedDoc,
+  mon0: mon0,
+  parse: parse,
+  weekKeyOf: weekKeyOf
+};

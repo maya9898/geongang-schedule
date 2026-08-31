@@ -62,6 +62,9 @@
       <button type="button" class="wknavbtn" id="wk-prev" aria-label="이전 주">‹ 이전 주</button>
       <button type="button" class="wknavbtn" id="wk-today">이번 주</button>
       <button type="button" class="wknavbtn" id="wk-next" aria-label="다음 주">다음 주 ›</button>
+      <!-- 오늘 날짜 — 양력이 기본이고 음력은 약식으로 옆에 붙습니다 (lunar.js).
+           음력을 모르는 환경에서는 그 부분만 비어 있습니다(틀린 날짜를 쓰지 않습니다). -->
+      <p class="todayline" id="todayline"></p>
     </div>
     <div class="daystrip" id="daystrip" role="tablist" aria-label="요일 선택"></div>
     <div class="wgrid" id="wgrid"></div>
@@ -89,7 +92,7 @@
     <summary>전체 학사 일정 보기<span class="evlist-count" id="evlist-count"></span></summary>
     <div class="evlist" id="evlist"></div>
   </details>
-  <p class="note" style="border-left-color:var(--ink-3)">달력의 각 날짜 칸에는 그날 해당하는 학사 일정이 이미 표시됩니다. 이 목록은 학기 전체 일정을 한눈에 보고 싶을 때 확인하세요 — 학교 2026학년도 학사일정 중 <strong style="color:var(--ink-2)">2학년에 해당하는 항목</strong>만 담았고, 다른 학년 행사는 목록 아래에 흐리게 참고로 두었습니다. 학사일정은 학교 사정에 따라 변경될 수 있습니다.</p>
+  <p class="note" style="border-left-color:var(--ink-3)">달력의 각 날짜 칸에는 그날 해당하는 학사 일정이 이미 표시됩니다. 이 목록은 학기 전체 일정을 한눈에 보고 싶을 때 확인하세요 — 2026학년도 학사일정 중 <strong style="color:var(--ink-2)">2학년에 해당하는 항목</strong>만 담았고, 다른 학년 행사는 목록 아래에 흐리게 참고로 두었습니다. 학사일정은 학교 사정에 따라 변경될 수 있습니다.</p>
 </section>
 
 <div class="modal-overlay" id="help-modal" hidden>
@@ -175,6 +178,8 @@
 <script src="data.js"></script>
 <script src="app-config.js"></script>
 <script src="cloud-store.js"></script>
+
+<script src="lunar.js"></script>
 
 <script src="app.js"></script>
 
