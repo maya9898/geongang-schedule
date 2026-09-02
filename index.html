@@ -50,6 +50,11 @@
       <button type="button" id="cv-week"  role="tab" aria-selected="true"  aria-controls="weekview">주간</button>
       <button type="button" id="cv-month" role="tab" aria-selected="false" aria-controls="monthview">월간</button>
     </div>
+
+  <!-- 오늘 날짜 — 양력이 기본이고 음력은 약식으로 옆에 붙습니다.
+       주간·월간 어느 보기에서나 같은 자리에 있습니다(상단이 들쭉날쭉하지 않도록).
+       음력을 모르는 환경에서는 그 부분만 비어 있습니다(틀린 날짜를 쓰지 않습니다). -->
+  <p class="todayline" id="todayline"></p>
     <button type="button" class="wa-mini calspacer" id="assign-btn">이번 주 학습 배정</button>
     <button type="button" class="wa-mini" id="help-btn">사용 방법 안내</button>
     <button type="button" class="wa-mini" id="m-brief" aria-pressed="false" hidden>간략히 보기</button>
@@ -62,9 +67,6 @@
       <button type="button" class="wknavbtn" id="wk-prev" aria-label="이전 주">‹ 이전 주</button>
       <button type="button" class="wknavbtn" id="wk-today">이번 주</button>
       <button type="button" class="wknavbtn" id="wk-next" aria-label="다음 주">다음 주 ›</button>
-      <!-- 오늘 날짜 — 양력이 기본이고 음력은 약식으로 옆에 붙습니다 (lunar.js).
-           음력을 모르는 환경에서는 그 부분만 비어 있습니다(틀린 날짜를 쓰지 않습니다). -->
-      <p class="todayline" id="todayline"></p>
     </div>
     <div class="daystrip" id="daystrip" role="tablist" aria-label="요일 선택"></div>
     <div class="wgrid" id="wgrid"></div>
@@ -73,9 +75,8 @@
   <div id="monthview" role="tabpanel" aria-labelledby="cv-month" hidden>
     <div class="mnav">
       <button type="button" class="wknavbtn" id="m-prev" aria-label="이전 달">‹ 이전 달</button>
-      <span class="mtitle" id="m-title"></span>
-      <button type="button" class="wknavbtn" id="m-next" aria-label="다음 달">다음 달 ›</button>
       <button type="button" class="wknavbtn" id="m-today">이번 달</button>
+      <button type="button" class="wknavbtn" id="m-next" aria-label="다음 달">다음 달 ›</button>
     </div>
     <div class="mscroll">
       <div class="mwdays"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>

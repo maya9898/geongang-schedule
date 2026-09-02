@@ -1131,7 +1131,9 @@ function renderMonth(mk){
   const grid = $('mgrid');
   grid.className = 'mmonth' + (briefMode ? ' brief' : '');
   grid.innerHTML = cells;
-  $('m-title').textContent = y + '년 ' + m + '월';
+  /* 기간 라벨은 주간과 같은 자리(h2)에 쓴다 — 나브 줄 구성이 두 보기에서 같아야
+     전환 때 상단이 출렁이지 않는다. 주간이 그리는 중이면 덮지 않는다. */
+  if (calView === 'month') $('wklabel').textContent = '— ' + y + '년 ' + m + '월';
   $('m-prev').disabled = !monthInSem(shiftMonth(mk, -1));
   $('m-next').disabled = !monthInSem(shiftMonth(mk, 1));
   if (selectedDate) markSelectedCell();
@@ -1167,7 +1169,7 @@ function setCalView(v){
   $('m-brief').hidden = week;
   $('wkh2').firstChild.textContent = week ? '주간 달력 ' : '월간 달력 ';
   if (week) renderWeek(currentWeekKey || initialWeekKey());
-  else { $('wklabel').textContent = ''; renderMonth(currentMonthKey || initialMonthKey()); }
+  else renderMonth(currentMonthKey || initialMonthKey());
   try { sessionStorage.setItem('kg-calview', calView); } catch(err){}
 }
 
@@ -1946,6 +1948,8 @@ window.__app = {
   get currentWeekKey(){ return currentWeekKey; },
   get STUDY(){ return STUDY; },
   get activeDay(){ return activeDay; },
+  /* 건강이 앱의 오늘 = 기기 날짜 (가족 시간대 설정은 찐한플래너 전용) */
+  get todayKey(){ return dkey(new Date()); },
   assignedDaysForWeek: assignedDaysForWeek,
   computeAutoWeekPlan: computeAutoWeekPlan,
   dayStudyList: dayStudyList,

@@ -78,6 +78,14 @@
 }
 
 *{box-sizing:border-box}
+
+/* ── 화면 폭 고정 ──
+   내용이 길어 스크롤바가 «생겼다 사라졌다» 할 때마다, 그리고 팝업이 스크롤을
+   잠글 때마다 화면 폭이 15px 씩 움찔거렸다(요일마다 카드 폭이 다르게 보인
+   원인). 스크롤바 자리를 항상 예약해 어떤 상태에서도 폭이 같게 한다. */
+html{scrollbar-gutter:stable}
+@supports not (scrollbar-gutter:stable){ html{overflow-y:scroll} }
+
 body{
   margin:0; background:var(--bg); color:var(--ink);
   font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Noto Sans KR",-apple-system,BlinkMacSystemFont,sans-serif;
@@ -579,6 +587,10 @@ span.wa-day{cursor:default;display:inline-flex;align-items:center;justify-conten
 .wedit:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
 .wstudy{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+/* 수정 버튼은 카드 맨 아래(확정 규칙) — 내용이 짧아도 일곱 장의 아랫변과 버튼
+   자리가 맞아야 한 줄이 들쑥날쑥해 보이지 않는다. 남는 공간은 체크리스트
+   아래가 흡수하고, 버튼 위 10px 간격은 어느 카드에서나 그대로다. */
+.wgrid .cell .wstudy, .mmonth .cell .wstudy{margin-bottom:auto}
 /* 학습 항목 이름도 나머지 리스트(.cev)와 같은 .9em으로 맞춘다 — 카드 안에서 글자 크기가
    들쭉날쭉하지 않도록. 기준(--fs-0) 자체를 바꾸면 카드 밖 다른 곳까지 흔들리므로
    여기서만 낮춘다. */
@@ -611,9 +623,8 @@ span.wa-day{cursor:default;display:inline-flex;align-items:center;justify-conten
 .calspacer{margin-left:auto}
 
 /* ── 월간 달력 ── */
-.mnav{display:flex;align-items:center;gap:8px;margin:0 0 12px;flex-wrap:wrap}
-.mtitle{font-size:14px;font-weight:700;min-width:118px;
-  font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+/* 주간(.wknav)과 같은 여백 — 주간↔월간 전환 때 달력 영역이 오르내리지 않게 한다 */
+.mnav{display:flex;align-items:center;gap:8px;margin:2px 0 14px;flex-wrap:wrap}
 .mscroll{border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow)}
 .mscroll .mwdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
   background:var(--surface-2);border-bottom:1px solid var(--line)}
@@ -865,7 +876,8 @@ body.modal-open{overflow:hidden}
    않는다 — 도화지에 검은 글씨다. 음력만 한 단계 옅게 두어 «덧붙는 정보»임이
    보이게 한다. 음력을 모르는 환경에서는 그 span 자체가 없다. */
 .todayline{
-  flex-basis: 100%; margin: 6px 0 0; display: flex; align-items: baseline; gap: 8px;
+  /* 주간·월간 공통의 독립 줄 — 보기 전환 때 나타났다 사라지면 상단이 출렁인다 */
+  margin: -6px 0 14px; display: flex; align-items: baseline; gap: 8px;
   font-size: .95em; color: var(--ink); font-variant-numeric: tabular-nums;
 }
 .tl-lunar{
